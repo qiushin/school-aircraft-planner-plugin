@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RCC>
+    <qresource prefix="/">
+        <file>plugin.svg</file>
+    </qresource>
+    <qresource prefix="/shader">
+        <file>shader/fshader.glsl</file>
+        <file>shader/line_vshader.glsl</file>
+        <file>shader/line_fshader.glsl</file>
+        <file>shader/fragment_shader.glsl</file>
+    </qresource>
+</RCC> 
