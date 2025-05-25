@@ -31,7 +31,6 @@ public:
   void setRoutePlanner(RoutePlanner *planner);
   void drawPathSection(const QVector<QVector3D> &points, const QVector4D &color,
                        float lineWidth, bool dashed);
-  double currentSpeed = 10;
 
 protected:
   void initializeGL() override;
