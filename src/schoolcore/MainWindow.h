@@ -7,6 +7,7 @@ Date:2025.1.6
 #include "MyOpenGLWidget.h"
 #include "RoutePlanner.h"
 #include "WorkspaceState.h"
+#include "WorkspaceState.h"
 #include "qgisinterface.h"
 #include "qgisplugin.h"
 #include "qgsmapcanvas.h"
@@ -63,8 +64,10 @@ private:
   void createMenu();
   void createMainWindow();
   void createJoyDockWidgets();
+  void createJoyDockWidgets();
   void createLeftDockWidget();
   void createRightDockWidget();
+  void createSlots();
   void createSlots();
   void createCanvas();
   QMenuBar *mpMenuBar;
@@ -78,6 +81,7 @@ private:
   void loadDirectoryFiles(const QString &path);
   void loadDirectoryLevel(QTreeWidgetItem *parentItem, const QString &path, int level, int maxLevel);
   void onTreeItemExpanded(QTreeWidgetItem *item);
+  void onTreeItemDoubleClicked(QTreeWidgetItem *item, int column);
   QString getItemFullPath(QTreeWidgetItem *item);
   std::unique_ptr<RoutePlanner> mpRoutePlanner;
   std::unique_ptr<MyOpenGLWidget> mpOpenGLWidget;
@@ -94,10 +98,22 @@ private:
     }
     return pWidget;
   }
+  void init3DWidget();
+  void init2DWidget();
+  template <typename Tp> // Tp is the pointer type
+  Tp safeFindChild(const QString &name) {
+    Tp pWidget = this->findChild<Tp>(name);
+    if (pWidget == nullptr){
+      logMessage("findChild: " + name + " not found", Qgis::MessageLevel::Critical);
+      return dynamic_cast<Tp>(ws::WindowManager::getInstance().getDefaultObject());
+    }
+    return pWidget;
+  }
 
 private slots:
   void queryFlightParameters();
   void refreshBasicData();
+  void loadModel(const QString& objFilePath);
 
 private:
   QLabel *m_pFlightParamsDisplay;

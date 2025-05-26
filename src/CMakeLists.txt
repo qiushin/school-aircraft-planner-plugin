@@ -1,6 +1,11 @@
+
+set(AVATAR_RESOURCES
+    ${CMAKE_SOURCE_DIR}/resources/avatar.qrc
+)
+
 add_library(3Dschool MODULE
   qgis_plugin_main.cpp
-  ../resources/resources.qrc
+  ${AVATAR_RESOURCES}
 )
 
 target_link_libraries(3Dschool
