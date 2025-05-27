@@ -1,4 +1,4 @@
-# 2025 Spring 3S综合实习QGIS插件
+# 2025 Spring 3S综合实习 校园三维无人机模拟平台
 
 ## Install
 
