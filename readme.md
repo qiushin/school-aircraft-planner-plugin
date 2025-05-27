@@ -21,19 +21,29 @@ cd 3Dschool_app
 ``` bash
 mkdir build
 cd build
-cmake ..
-cmake --build . --parallel --config release
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+cmake --build . --parallel
 ```
 
 the executable will be output to `build/app/bin/3Dschool_app`
+
+**If you want to build a release version, you can use the following command:**
+
+``` bash
+cmake -DCMAKE_BUILD_TYPE=Release ..
+cmake --build . --parallel
+```
+
+This will build a release version of the application for distribution.
 
 ### Install as a QGIS plugin
 ``` bash
 mkdir build
 cd build
-cmake .. -DBUILD_AS_PLUGIN=ON
+cmake -DBUILD_AS_PLUGIN=ON ..
 cmake --build . --parallel --config release
 ```
+the plugin will be output to `build/src/3Dschool_app.so(3Dschool_app.dll for Windows)
 
 ## Setup
 
@@ -41,7 +51,6 @@ cmake --build . --parallel --config release
 The first time you run the application, you need to execute `run.sh` in a shell to setup the environment.
 
 ### Use as a QGIS plugin
-the plugin will be output to `build/src/3Dschool_app.so(3Dschool_app.dll for Windows)
 
 then copy the plugin to the OSWGeo4W QGIS plugin directory On Windows, it is `C:\OSGeo4W\apps\qgis\plugins`
 and on Linux, it is `~/.local/share/QGIS/QGIS3/profiles/default/python/plugins`
