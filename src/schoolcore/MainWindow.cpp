@@ -767,7 +767,7 @@ void MainWindow::refreshBasicData() {
     m_pPressureLabel->setText(
         QString("%1 hPa").arg(pressure, 0, 'f', 1)); // 注意这里有两个闭合括号
 }
-
+/*
 void MainWindow::setTianDiTuMap(double lat, double lon, int zoom) {
     QString key = "3e6c3b63b9529d502fc08c5850dfa5d5";
 
@@ -821,6 +821,7 @@ void MainWindow::setTianDiTuMap(double lat, double lon, int zoom) {
   // mpWebView->setHtml(htmlContent);
   logMessage("set TianDiTu map", Qgis::MessageLevel::Success);
 }
+*/
 void MainWindow::showUserManual() {
     logMessage("show user manual", Qgis::MessageLevel::Info);
     QDialog *manualDialog = new QDialog(this);

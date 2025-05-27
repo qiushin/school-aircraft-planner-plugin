@@ -51,7 +51,7 @@ public:
   MainWindow(QWidget *parent = nullptr);
   ~MainWindow();
 
-  void setTianDiTuMap(double lat, double lon, int zoom);
+  //void setTianDiTuMap(double lat, double lon, int zoom);
   QLabel *mpImageLabel;
 private slots:
   void Unrealized();
