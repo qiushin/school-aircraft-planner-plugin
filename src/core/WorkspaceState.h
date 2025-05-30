@@ -5,6 +5,7 @@
 #include <QMatrix4x4>
 #include <QVector3D>
 #include <float.h>
+#include <stdexcept>
 
 //use a singleton to manage the workspace state
 typedef std::pair<QString, QString> ObjTexturePair; // the first is the obj path, the second is the texture path
@@ -27,8 +28,8 @@ enum class CanvasType : unsigned char{
 class WindowManager {
 private:
     WindowManager();
-    ~WindowManager();
 public:
+    ~WindowManager();
     static WindowManager& getInstance() {
         static WindowManager instance;
         return instance;
@@ -53,8 +54,8 @@ private:
 class PathManager {
 private:
     PathManager();
-    ~PathManager();
 public:
+    ~PathManager();
     static PathManager& getInstance() {
         static PathManager instance;
         return instance;
@@ -84,8 +85,8 @@ enum class WeatherType : unsigned char{
 class EnvManager{
 private:
     EnvManager();
-    ~EnvManager();
 public:
+    ~EnvManager();
     const QStringList weatherList = {"Sunny", "Cloudy", "Rainy", "Snowy", "Foggy"};
     static EnvManager& getInstance() {
         static EnvManager instance;
@@ -112,8 +113,8 @@ private:
 class FlightManager{
 private:
     FlightManager();
-    ~FlightManager();
 public:
+    ~FlightManager();
     static FlightManager& getInstance() {
         static FlightManager instance;
         return instance;
