@@ -1,5 +1,5 @@
-#pragma once
-//#include <GL/gl.h>
+#ifndef PRIMITIVE_H
+#define PRIMITIVE_H
 #include <QOpenGLBuffer>
 #include <QOpenGLFunctions>
 #include <QOpenGLShaderProgram>
@@ -13,9 +13,10 @@
 #include <cfloat>
 #include <memory>
 #include "../core/WorkspaceState.h"
-namespace gl{
 
-class Primitive : protected QOpenGLFunctions{
+namespace gl{
+class Primitive : public QObject{
+  Q_OBJECT
 
 protected:
     QOpenGLVertexArrayObject vao;
@@ -30,10 +31,11 @@ protected:
     bool constructShader(const QString& vertexShaderPath, const QString& fragmentShaderPath, const QString& geometryShaderPath="");
 public:
     Primitive(GLenum primitiveType, GLfloat* vertices, GLuint vertexNum, GLuint stride); // RAII constructor
+    Primitive(GLenum primitiveType, const QVector<QVector3D>& vertices, GLuint stride); // RAII constructor
     Primitive(GLenum primitiveType, GLuint stride); // no init data constructor
     void setModelMatrix(const QMatrix4x4 &matrix);
     virtual ~Primitive();
-    virtual void draw()=0;
+    virtual void draw(const QMatrix4x4 &view, const QMatrix4x4 &projection)=0;
 };
 
 class ColorPrimitive : public Primitive{
@@ -41,10 +43,11 @@ class ColorPrimitive : public Primitive{
     static constexpr QVector4D DEFAULT_COLOR = QVector4D(1.0f, 1.0f, 1.0f, 1.0f);
 public:
     ColorPrimitive(GLenum primitiveType, GLfloat* vertices, GLuint vertexNum, const QVector4D& color=DEFAULT_COLOR);
+    ColorPrimitive(GLenum primitiveType, const QVector<QVector3D>& vertices, const QVector4D& color=DEFAULT_COLOR);
     ColorPrimitive(GLenum primitiveType, const QVector4D& color=DEFAULT_COLOR);
     void setColor(const QVector4D& color){this->color = color;}
     QVector4D getColor() const{return this->color;}
-    void draw() override;
+    void draw(const QMatrix4x4 &view, const QMatrix4x4 &projection) override;
 };
 
 class BasePlane : public ColorPrimitive{
@@ -57,17 +60,22 @@ public:
 
 class RoutePath : public ColorPrimitive{
 public:
-  RoutePath(GLfloat* vertices, GLuint vertexNum, const QVector4D& color=QVector4D(1.0f, 1.0f, 1.0f, 1.0f));
+  RoutePath(const QVector<QVector3D>& vertices, const QVector4D& color=QVector4D(1.0f, 1.0f, 1.0f, 1.0f));
+};
+
+class HomePoint : public ColorPrimitive{
+public:
+  HomePoint(const QVector<QVector3D>& vertices, const QVector4D& color=QVector4D(1.0f, 1.0f, 1.0f, 1.0f));
 };
 
 class ControlPoints : public ColorPrimitive{
 public:
-  ControlPoints(GLfloat* vertices, GLuint vertexNum=1, const QVector4D& color=QVector4D(1.0f, 1.0f, 1.0f, 1.0f));
+  ControlPoints(const QVector<QVector3D>& vertices, const QVector4D& color=QVector4D(1.0f, 1.0f, 1.0f, 1.0f));
 };
 
 class ConvexHull : public ColorPrimitive{
 public:
-  ConvexHull(GLfloat* vertices, GLuint vertexNum, const QVector4D& color=QVector4D(1.0f, 1.0f, 1.0f, 1.0f));
+  ConvexHull(const QVector<QVector3D>& vertices, const QVector4D& color=QVector4D(1.0f, 1.0f, 1.0f, 1.0f));
 };
 
 class ModelData{
@@ -125,7 +133,7 @@ class Model : public Primitive{
 public:
     Model(std::shared_ptr<ModelData> modelData);
     Model(const QString& objFilePath);
-    void draw() override;
+    void draw(const QMatrix4x4 &view, const QMatrix4x4 &projection) override;
     QVector3D getModelCenter() const{return modelData->mBounds.center;}
     const Bounds& getBounds() const{return modelData->mBounds;}
     void setBounds(const Bounds& bounds){modelData->mBounds = bounds;}
@@ -133,3 +141,5 @@ protected:
     void loadModel(const QString& objFilePath);
 };
 }
+
+#endif // PRIMITIVE_H

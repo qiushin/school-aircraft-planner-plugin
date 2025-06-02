@@ -1,6 +1,9 @@
 #include "Primitive.h"
-#include "../log/qgis_debug.h"
-#include "camera.h"
+#include "../log/QgisDebug.h"
+#include "../core/WorkspaceState.h"
+#include "Camera.h"
+#include <GL/gl.h>
+#include <QOpenGLContext>
 namespace gl {
 using Material = ModelData::Material;
 using Texture = QOpenGLTexture;
@@ -17,8 +20,7 @@ using MaterialGroupMap = QMap<QString, pMaterialGroup>;
 using pMaterialGroupMap = std::shared_ptr<MaterialGroupMap>;
 using TexturePair = std::pair<pMaterialVector, pTextureMap>;
 
-Primitive::Primitive(GLenum primitiveType, GLfloat *vertices, GLuint vertexNum,
-                     GLuint stride) {
+Primitive::Primitive(GLenum primitiveType, GLfloat *vertices, GLuint vertexNum, GLuint stride) {
   this->primitiveType = primitiveType;
   this->vertices = vertices;
   this->vertexNum = vertexNum;
@@ -37,6 +39,32 @@ Primitive::Primitive(GLenum primitiveType, GLfloat *vertices, GLuint vertexNum,
   this->vao.release();
   logMessage("Primitive data initialized", Qgis::MessageLevel::Info);
 }
+
+Primitive::Primitive(GLenum primitiveType, const QVector<QVector3D>& vertices, GLuint stride){
+  this->primitiveType = primitiveType;
+  this->vertexNum = vertices.size();
+  this->vertices = new GLfloat[this->vertexNum * 3];
+  for (GLuint i = 0; i < this->vertexNum; i++) {
+    this->vertices[i * 3] = vertices[i].x();
+    this->vertices[i * 3 + 1] = vertices[i].y();
+    this->vertices[i * 3 + 2] = vertices[i].z();
+  }
+  this->stride = stride;
+  this->vao.create();
+  this->vbo.create();
+  this->modelMatrix.setToIdentity();
+  this->shader = nullptr;
+  logMessage("Primitive created", Qgis::MessageLevel::Info);
+  this->vao.bind();
+  this->vbo.bind();
+  this->vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
+  this->vbo.allocate(this->vertices,
+                     this->vertexNum * this->stride * sizeof(GLfloat));
+  this->vbo.release();
+  this->vao.release();
+  logMessage("Primitive data initialized", Qgis::MessageLevel::Info);
+}
+
 Primitive::Primitive(GLenum primitiveType, GLuint stride)
     : shader(nullptr), stride(stride) {
   this->primitiveType = primitiveType;
@@ -47,10 +75,12 @@ Primitive::Primitive(GLenum primitiveType, GLuint stride)
 
 Primitive::~Primitive() {
   logMessage("ready to destroy Primitive", Qgis::MessageLevel::Info);
-  this->vao.destroy();
-  this->vbo.destroy();
-  this->shader = nullptr;
-  delete[] this->vertices;
+  if (QOpenGLContext::currentContext()) {
+    this->vao.destroy();
+    this->vbo.destroy();
+    this->shader = nullptr;
+    delete[] this->vertices;
+  }
   logMessage("Primitive destroyed", Qgis::MessageLevel::Success);
 }
 
@@ -70,19 +100,21 @@ ColorPrimitive::ColorPrimitive(GLenum primitiveType, GLfloat *vertices,
                                GLuint vertexNum, const QVector4D &color)
     : Primitive(primitiveType, vertices, vertexNum, 3), color(color) {}
 
-void ColorPrimitive::draw() {
+ColorPrimitive::ColorPrimitive(GLenum primitiveType, const QVector<QVector3D>& vertices, const QVector4D& color)
+    : Primitive(primitiveType, vertices, 3), color(color) {}
+
+void ColorPrimitive::draw(const QMatrix4x4 &view, const QMatrix4x4 &projection) {
   if (!shader) {
     logMessage("Shader is not set", Qgis::MessageLevel::Critical);
     return;
   }
-  Camera& camera = Camera::getInstance();
   this->shader->bind();
   this->shader->setUniformValue("model", this->modelMatrix);
-  this->shader->setUniformValue("view", camera.viewMatrix());
-  this->shader->setUniformValue("projection", camera.projectionMatrix());
+  this->shader->setUniformValue("view", view);
+  this->shader->setUniformValue("projection", projection);
   this->shader->setUniformValue("vColor", this->color);
   this->vao.bind();
-  //glDrawArrays(this->primitiveType, 0, this->vertexNum);
+  glDrawArrays(this->primitiveType, 0, this->vertexNum);
   this->vao.release();
   this->shader->release();
   checkGLError("ColorPrimitive::draw");
@@ -129,9 +161,8 @@ BasePlane::BasePlane(const QVector4D &color)
   logMessage("BasePlane initialized", Qgis::MessageLevel::Info);
 }
 
-RoutePath::RoutePath(GLfloat *vertices, GLuint vertexNum,
-                     const QVector4D &color)
-    : ColorPrimitive(GL_LINE_STRIP, vertices, vertexNum, color) {
+RoutePath::RoutePath(const QVector<QVector3D>& vertices, const QVector4D& color)
+    : ColorPrimitive(GL_LINE_STRIP, vertices, color) {
   logMessage("start constructing shader", Qgis::MessageLevel::Info);
   constructShader(QStringLiteral(":/schoolcore/shaders/line.vs"), QStringLiteral(":/schoolcore/shaders/line.fs"));
   this->shader->enableAttributeArray(0);
@@ -139,9 +170,8 @@ RoutePath::RoutePath(GLfloat *vertices, GLuint vertexNum,
   logMessage("RoutePath initialized", Qgis::MessageLevel::Info);
 }
 
-ControlPoints::ControlPoints(GLfloat *vertices, GLuint vertexNum,
-                             const QVector4D &color)
-    : ColorPrimitive(GL_POINTS, vertices, vertexNum, color) {
+ControlPoints::ControlPoints(const QVector<QVector3D>& vertices, const QVector4D& color)
+    : ColorPrimitive(GL_POINTS, vertices, color) {
   logMessage("start constructing shader", Qgis::MessageLevel::Info);
   constructShader(QStringLiteral(":/schoolcore/shaders/point.vs"), QStringLiteral(":/schoolcore/shaders/point.fs"));
   this->shader->enableAttributeArray(0);
@@ -149,9 +179,17 @@ ControlPoints::ControlPoints(GLfloat *vertices, GLuint vertexNum,
   logMessage("ControlPoints initialized", Qgis::MessageLevel::Info);
 }
 
-ConvexHull::ConvexHull(GLfloat *vertices, GLuint vertexNum,
-                       const QVector4D &color)
-    : ColorPrimitive(GL_LINE_LOOP, vertices, vertexNum, color) {
+HomePoint::HomePoint(const QVector<QVector3D>& vertices, const QVector4D& color)
+    : ColorPrimitive(GL_POINTS, vertices, color) {
+  logMessage("start constructing shader", Qgis::MessageLevel::Info);
+  constructShader(QStringLiteral(":/schoolcore/shaders/point.vs"), QStringLiteral(":/schoolcore/shaders/point.fs"));
+  this->shader->enableAttributeArray(0);
+  this->shader->setAttributeBuffer(0, GL_FLOAT, 0, 3, this->stride * sizeof(GLfloat));
+  logMessage("HomePoint initialized", Qgis::MessageLevel::Info);
+}
+
+  ConvexHull::ConvexHull(const QVector<QVector3D>& vertices, const QVector4D& color)
+    : ColorPrimitive(GL_LINE_LOOP, vertices, color) {
   logMessage("start constructing shader", Qgis::MessageLevel::Info);
   constructShader(QStringLiteral(":/schoolcore/shaders/line.vs"), QStringLiteral(":/schoolcore/shaders/line.fs"));
   this->shader->enableAttributeArray(0);
@@ -189,22 +227,19 @@ Model::Model(std::shared_ptr<ModelData> modelData)
   this->vbo.allocate(this->vertices, count * sizeof(GLfloat));
   this->vbo.release();
   this->vao.release();
-
   checkGLError("Model::Model");
 }
 
-void Model::draw() {
+void Model::draw(const QMatrix4x4 &view, const QMatrix4x4 &projection) {
     if (!shader) {
         logMessage("Shader is not set", Qgis::MessageLevel::Critical);
         return;
     }
-    Camera& camera = Camera::getInstance();
     this->shader->bind();
     this->shader->setUniformValue("model", this->modelMatrix);
-    this->shader->setUniformValue("view", camera.viewMatrix());
-    this->shader->setUniformValue("projection", camera.projectionMatrix());
+    this->shader->setUniformValue("view", view);
+    this->shader->setUniformValue("projection", projection);
     this->vao.bind();
-
     glDrawArrays(this->primitiveType, 0, this->vertexNum);
     this->vao.release();
     this->shader->release();

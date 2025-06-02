@@ -1,4 +1,5 @@
-#pragma once
+#ifndef WORKSPACE_STATE_H
+#define WORKSPACE_STATE_H
 #include <QString>
 #include <QList>
 #include <QDir>
@@ -25,11 +26,13 @@ enum class CanvasType : unsigned char{
     ThreeD,
     TwoD
 };
-class WindowManager {
+class WindowManager : public QObject{
+    Q_OBJECT
+    
 private:
     WindowManager();
 public:
-    ~WindowManager();
+    virtual ~WindowManager();
     static WindowManager& getInstance() {
         static WindowManager instance;
         return instance;
@@ -39,10 +42,6 @@ public:
     void setCurrentCanvas(CanvasType canvas) {mCurrentCanvas = canvas;}
     CanvasType getCurrentCanvas() const {return mCurrentCanvas;}
     QObject* getDefaultObject() const {return pDefaultObject;}
-    bool get3DMapInited() const {return is3DMapInited;}
-    bool get2DMapInited() const {return is2DMapInited;}
-    void set3DMapInited() {is3DMapInited = true;}
-    void set2DMapInited() {is2DMapInited = true;}
     const Bounds& getBounds() const {return mBounds;}
     void setBounds(const Bounds& bounds) {mBounds = bounds;}
 private:
@@ -51,11 +50,13 @@ private:
     bool is3DMapInited,is2DMapInited;
     Bounds mBounds;
 };
-class PathManager {
+class PathManager : public QObject{
+    Q_OBJECT
+
 private:
     PathManager();
 public:
-    ~PathManager();
+    virtual ~PathManager();
     static PathManager& getInstance() {
         static PathManager instance;
         return instance;
@@ -68,6 +69,7 @@ public:
     void addObjTexturePair(const ObjTexturePair& objTexturePair) {mObjTexturePairs.append(objTexturePair);}
     QList<ObjTexturePair> getObjTexturePairs() const {return mObjTexturePairs;}
     ObjTexturePair getObjTexturePair(int index) const;
+    
 private:
     QString mRootDir;
     //QString mPath3D;
@@ -82,11 +84,13 @@ enum class WeatherType : unsigned char{
     Snowy,
     Foggy
 };
-class EnvManager{
+class EnvManager : public QObject{
+    Q_OBJECT
+
 private:
     EnvManager();
 public:
-    ~EnvManager();
+    virtual ~EnvManager();
     const QStringList weatherList = {"Sunny", "Cloudy", "Rainy", "Snowy", "Foggy"};
     static EnvManager& getInstance() {
         static EnvManager instance;
@@ -105,16 +109,22 @@ public:
     static constexpr int maxTemperature = 50;
     static constexpr int minPressure = 800;
     static constexpr int maxPressure = 1100;
+
+public slots:
+    void generateRandomWeather();
+
 private:
     WeatherType mWeather;
     double mTemperature;
     double mPressure;
 };
-class FlightManager{
+class FlightManager : public QObject{
+    Q_OBJECT
+
 private:
     FlightManager();
 public:
-    ~FlightManager();
+    virtual ~FlightManager();
     static FlightManager& getInstance() {
         static FlightManager instance;
         return instance;
@@ -140,6 +150,9 @@ public:
     static constexpr int maxFlightBattery = 100;
     static constexpr int minBaseHeight = 0;
     static constexpr int maxBaseHeight = 100;
+
+public slots:
+    QString queryFlightParameters();
 private:
     double mFlightSpeed,mFlightAltitude,mFlightBattery;
     double mBaseHeight, mCurrentHeight;
@@ -148,11 +161,13 @@ private:
     QVector<QVector3D> mFlightPath;
     QVector3D mHomePosition;
 };
-/*
-class AnimationManager{
+
+class AnimationManager : public QObject {
+    Q_OBJECT
+
 private:
     AnimationManager();
-    ~AnimationManager();
+    ~AnimationManager() = default;
 public:
     static AnimationManager& getInstance() {
         static AnimationManager instance;
@@ -162,29 +177,27 @@ public:
     AnimationManager& operator=(const AnimationManager&) = delete;
     void setAnimationSpeed(double speed) {mAnimationSpeed = speed;}
     double getAnimationSpeed() const {return mAnimationSpeed;}
-    void setAnimationDirection(AnimationDirection direction) {mAnimationDirection = direction;}
-    AnimationDirection getAnimationDirection() const {return mAnimationDirection;}
-    
-    void startSimulation(float speed);      // 开始模拟
-    void pauseSimulation();                 // 暂停模拟
-    void resumeSimulation();                // 继续模拟
-    void returnToHome();                    // 自动返回
+    void setAnimationDirection(QVector3D direction) {mAnimationDirection = direction;}
+    QVector3D getAnimationDirection() const {return mAnimationDirection;}
+
+public slots:
+    void startSimulation();
+    void pauseSimulation();
+    void resumeSimulation();
+    void returnToHome();
     void stopSimulation();
+
 private:
     double mAnimationSpeed;
-    QTimer mAnimationDirection;
-    m_animationTimer = new QTimer(this);
-  connect(m_animationTimer, &QTimer::timeout, this,
-          &MyOpenGLWidget::updateAnimation);
-  logMessage("m_animationTimer connected", Qgis::MessageLevel::Info);
-    QTimer *m_animationTimer;
-    float m_animationProgress; // 0~1之间的进度值
-    bool m_isAnimating;
+    QVector3D mAnimationDirection;
+    float mAnimationProgress;
+    bool mIsAnimating;
+    bool mIsPaused;
     void updateAnimation();
     void drawAircraft(const QVector3D &position, const QQuaternion &orientation);
-    QVector<Vertex> createAircraftModel();
-    bool m_cameraFollowAircraft; // 跟随摄像机
-    QVector3D m_viewTranslation; // 图平移
+    bool mCameraFollowAircraft;
+    QVector3D mViewTranslation;
 };
-*/
 }
+
+#endif

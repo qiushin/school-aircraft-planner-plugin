@@ -1,12 +1,14 @@
 /****************************************************************************
-File:MyOpenGLWidget.h
+File:OpenGLCanvas.h
 Author:wkj
 Date:2025.3.13
 ****************************************************************************/
-#pragma once
+#ifndef Canvas_H
+#define Canvas_H
 //#include <GL/gl.h>
-#include "../opengl/camera.h"
+#include "../opengl/Camera.h"
 #include "../opengl/Primitive.h"
+#include "../core/RoutePlanner.h"
 #include <QObject>
 #include <QOpenGLBuffer>
 #include <QOpenGLFunctions>
@@ -21,18 +23,14 @@ Date:2025.3.13
 #include <cfloat>
 #include <memory>
 
-class MyOpenGLWidget : public QOpenGLWidget, protected QOpenGLFunctions {
-  Q_OBJECT
-
+class OpenGLScene;
+class OpenGLCanvas : public QOpenGLWidget, protected QOpenGLFunctions {
 public:
-  MyOpenGLWidget(QWidget *parent = nullptr);
-  ~MyOpenGLWidget();
+  OpenGLCanvas(QWidget *parent = nullptr);
+  ~OpenGLCanvas();
   QVector3D getSurfacePointFromMouse();
- 
+
 protected:
-  std::shared_ptr<gl::Model> modelWidget;
-  std::shared_ptr<gl::BasePlane> basePlaneWidget;
-  std::shared_ptr<gl::ControlPoints> ControlPointsWidget;
   void initializeGL() override;
   void paintGL() override;
   void resizeGL(int w, int h) override;
@@ -41,29 +39,26 @@ protected:
   void keyPressEvent(QKeyEvent *event) override;
   void wheelEvent(QWheelEvent *event) override;
   std::unique_ptr<QTimer> updateTimer;
+  std::unique_ptr<OpenGLScene> mpScene;
 
-private:
-  void initCanvas();
-  std::shared_ptr<gl::BasePlane> initBasePlane();
-  
 private:
   QPoint mLastMousePos;
 public slots:
   void handleMouseMove(QMouseEvent *event);
-  void loadModel(const QString& objFilePath);
-signals:
-  void glInitialized();
+  void loadModel(const QString &objFilePath);
 };
- /*
-  void addControlPoint(const QVector3D &point);
-  void setRoutePlanner(RoutePlanner *planner);
-  void drawPathSection(const QVector<QVector3D> &points, const QVector4D &color,
-                       float lineWidth, bool dashed);
-  */
-  //void drawControlPoints();
-  //void drawConvexHull();
-  //void drawRoutePath();
-  //void drawBasePlane();
 
-  //RoutePlanner *m_routePlanner = nullptr;
-  //QVector<QVector3D> m_currentRoute;
+class OpenGLScene {
+public:
+  OpenGLScene();
+  ~OpenGLScene();
+  void paintScene(const QMatrix4x4 &view, const QMatrix4x4 &projection);
+  std::shared_ptr<gl::BasePlane> initBasePlane();
+  void loadModel(const QString &objFilePath);
+
+  // protected:
+  std::shared_ptr<gl::Model> modelWidget;
+  std::shared_ptr<gl::BasePlane> basePlaneWidget;
+  QVector<std::shared_ptr<Route>> routes;
+};
+#endif // Canvas_H
