@@ -4,6 +4,13 @@
 #include <QVector3D>
 #include <QMatrix4x4>
 #include <QQuaternion>
+#include <QPoint>
+
+const float YAW         = -90.0f;
+const float PITCH       =  0.0f;
+const float SPEED       =  2.5f;
+const float SENSITIVITY =  0.1f;
+const float ZOOM        =  45.0f;
 
 class Camera {
 private:
@@ -17,40 +24,46 @@ public:
     Camera(const Camera&) = delete;
     Camera& operator=(const Camera&) = delete;
 
+    QVector3D mPosition;
+    QVector3D mFront;
+    QVector3D mUp;
+    QVector3D mRight;
+    QVector3D mWorldUp;
+    
+    QQuaternion mRotation;
+    
+    float mMovementSpeed;
+    float mMouseSensitivity;
+    float mZoom;
+    
+    float mAspectRatio;
+    float mNearPlane;
+    float mFarPlane;
+
+    QMatrix4x4 viewMatrix() const;
+    QMatrix4x4 projectionMatrix() const;
+
     void setPosition(const QVector3D& position);
-    void setTarget(const QVector3D& target);
-    void setUpVector(const QVector3D& up);
-    void setFieldOfView(float fov);
     void setAspectRatio(float ratio);
     void setNearPlane(float near);
     void setFarPlane(float far);
-
-    QVector3D position() const { return mPosition; }
-    QVector3D target() const { return mTarget; }
-    QVector3D upVector() const { return mUp; }
-    float fieldOfView() const { return mFov; }
-    float aspectRatio() const { return mAspectRatio; }
-    float nearPlane() const { return mNearPlane; }
-    float farPlane() const { return mFarPlane; }
-    QMatrix4x4 viewMatrix() const;
-    QMatrix4x4 projectionMatrix() const;
-    float zoomFactor() const { return 0.1f; }
-
-    void moveForward(float distance);
-    void moveRight(float distance);
-    void moveUp(float distance);
-    void rotate(float yaw, float pitch);
+    void setUpVector(const QVector3D& up);
+    
+    void moveForward(float deltaTime);
+    void moveBackward(float deltaTime);
+    void moveLeft(float deltaTime);
+    void moveRight(float deltaTime);
+    void moveUp(float deltaTime);
+    void moveDown(float deltaTime);
+    
+    void rotate(const QQuaternion& rotation);
     void handleMouseMove(const QPoint& delta);
     void handleMouseWheel(int delta);
+    
     void resetView();
-private:
-    QVector3D mPosition, mTarget;      
-    QVector3D mUp,mRight, mFront;       
-    float mFov, mAspectRatio, mNearPlane, mFarPlane;      
-    float mYaw, mPitch;
 
+private:
     void updateCameraVectors();
-    void updateProjectionMatrix();
 };
 
 #endif // CAMERA_H
