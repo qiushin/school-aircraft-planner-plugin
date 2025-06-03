@@ -15,7 +15,7 @@
 #include <memory>
 
 namespace gl {
-class Primitive : public QObject {
+class Primitive : public QObject{
   Q_OBJECT
 
 protected:
@@ -106,6 +106,7 @@ public:
   ModelData(pMaterialVector materials = nullptr, pTextureMap textures = nullptr,
             pMaterialGroupMap materialGroups = nullptr,
             GLuint totalVertices = 0);
+  ModelData(const QString &objFilePath);
   ~ModelData();
   struct Material {
     QString name;
@@ -132,20 +133,12 @@ public:
   pMaterialVector materials;
   pTextureMap textures;
   pMaterialGroupMap materialGroups;
-  static std::shared_ptr<ModelData> loadObjModel(const QString &objFilePath);
-  static QString retriveMtlPath(const QString &objfilePath);
-  static std::pair<pMaterialGroupMap, GLuint>
-  loadMaterialGroups(const QString &filePath);
-  static TexturePair loadMtl(const QString &mtlPath);
   Bounds calculateModelBounds();
   void updateGlobalBounds(const Bounds &bounds);
   void applyGlobalCentering();
   QVector3D calculateModelCenter();
   Bounds mBounds;
   GLuint totalVertices;
-private:
-  static qint64 calcFaceNum(const QString &objFilePath);
-  static bool displayProgress(qint64 progressUpdateInterval);
 };
 class Model : public Primitive {
   std::shared_ptr<ModelData> modelData;
@@ -160,7 +153,6 @@ public:
   void cleanupTextures();
 
 protected:
-  void loadModel(const QString &objFilePath);
   void initModelData();
 };
 
@@ -171,4 +163,13 @@ public:
 };
 } // namespace gl
 
+
+namespace ModelDataLoader {
+QString retriveMtlPath(const QString &objfilePath);
+std::pair<gl::ModelData::pMaterialGroupMap, GLuint>
+loadMaterialGroups(const QString &filePath);
+gl::ModelData::TexturePair loadMtl(const QString &mtlPath);
+qint64 calcFaceNum(const QString &objFilePath);
+bool displayProgress(qint64 progressUpdateInterval);
+}//namespace ModelDataLoader
 #endif // PRIMITIVE_H

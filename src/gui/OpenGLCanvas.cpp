@@ -1,5 +1,6 @@
 ﻿#include "OpenGLCanvas.h"
 #include "../core/RoutePlanner.h"
+#include "../core/SharedContextManager.h"
 #include "../log/QgisDebug.h"
 #include <QApplication>
 #include <QDebug>
@@ -17,55 +18,33 @@
 #include <qgsapplication.h>
 #include <qtimer.h>
 #include <qvector4d.h>
+#include <qthread.h>
 #include "../core/WorkspaceState.h"
 
 OpenGLCanvas::OpenGLCanvas(QWidget *parent) : QOpenGLWidget(parent) {
-  setFocusPolicy(Qt::StrongFocus);
-  setFocus();
-
-  // set timer
-  updateTimer = std::make_unique<QTimer>();
-  updateTimer->setInterval(16);
-  connect(updateTimer.get(), &QTimer::timeout, this,
-          QOverload<>::of(&QOpenGLWidget::update));
-  updateTimer->start();
-
-  // set camera
-  double width = static_cast<double>(this->width());
-  double height = static_cast<double>(this->height());
-  Camera::getInstance().setAspectRatio(width / height);
-}
-
-void OpenGLCanvas::initializeSharedContext() {
-  if (!context()) {
-    logMessage("Cannot create shared context: main context is null", Qgis::MessageLevel::Critical);
-    return;
-  }
-
   QSurfaceFormat format;
   format.setVersion(4, 1);
   format.setProfile(QSurfaceFormat::CoreProfile);
   format.setDepthBufferSize(24);
   format.setStencilBufferSize(8);
   format.setSamples(4);
-  
-  mSharedContext = new QOpenGLContext();
-  mSharedContext->setFormat(format);
-  mSharedContext->setShareContext(context());
-  
-  if (!mSharedContext->create()) {
-    logMessage("Failed to create shared context", Qgis::MessageLevel::Critical);
-    delete mSharedContext;
-    mSharedContext = nullptr;
-    return;
-  }
+  format.setOption(QSurfaceFormat::DebugContext);
+  setFormat(format);
+  setFocusPolicy(Qt::StrongFocus);
+  setFocus();
 
-  if (mSharedContext->shareContext() != context()) {
-    logMessage("Context sharing failed", Qgis::MessageLevel::Critical);
-    delete mSharedContext;
-    mSharedContext = nullptr;
-    return;
-  }
+  // set timer
+  updateTimer = std::make_unique<QTimer>();
+  updateTimer->setInterval(16);
+  updateTimer->moveToThread(QApplication::instance()->thread());
+  connect(updateTimer.get(), &QTimer::timeout, this,
+          QOverload<>::of(&QOpenGLWidget::update), Qt::QueuedConnection);
+  updateTimer->start();
+
+  // set camera
+  double width = static_cast<double>(this->width());
+  double height = static_cast<double>(this->height());
+  Camera::getInstance().setAspectRatio(width / height);
 }
 
 OpenGLCanvas::~OpenGLCanvas() {
@@ -76,16 +55,9 @@ OpenGLCanvas::~OpenGLCanvas() {
     updateTimer = nullptr;
   }
   
-  // 确保在正确的上下文中清理资源
   if (mpScene) {
     mpScene->cleanupResources();
     mpScene = nullptr;
-  }
-  
-  if (mSharedContext) {
-    mSharedContext->doneCurrent();
-    delete mSharedContext;
-    mSharedContext = nullptr;
   }
   
   logMessage("OpenGLCanvas destroyed", Qgis::MessageLevel::Success);
@@ -105,15 +77,13 @@ void OpenGLCanvas::initializeGL() {
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  basePlaneWidget = std::make_shared<gl::BasePlane>();
-  initializeSharedContext();
-  
-  if (!mSharedContext) {
-    logMessage("Failed to initialize shared context", Qgis::MessageLevel::Critical);
+  // Initialize shared context manager with our surface
+  if (!SharedContextManager::getInstance().initialize(context())) {
+    logMessage("Failed to initialize shared context manager", Qgis::MessageLevel::Critical);
     return;
   }
 
-  mpScene = std::make_unique<OpenGLScene>(mSharedContext);
+  mpScene = std::make_unique<OpenGLScene>(context());
   logMessage("OpenGL scene initialized", Qgis::MessageLevel::Success);
 }
 
@@ -140,9 +110,6 @@ void OpenGLCanvas::paintGL() {
   QMatrix4x4 view = camera.viewMatrix();
   QMatrix4x4 projection = camera.projectionMatrix();
 
-  if (basePlaneWidget)
-    basePlaneWidget->draw(view, projection);
-
   if (mpScene) {
     mpScene->paintScene(view, projection);
   }
@@ -154,84 +121,59 @@ void OpenGLCanvas::paintGL() {
   }
 }
 
-OpenGLScene::OpenGLScene(QOpenGLContext* sharedContext) : mSharedContext(sharedContext) {
-  if (!mSharedContext) {
-    logMessage("Shared context is null in OpenGLScene constructor", Qgis::MessageLevel::Critical);
-    return;
-  }
-  logMessage("Shared context is valid in OpenGLScene constructor", Qgis::MessageLevel::Info);
-
-  mSurface = new QOffscreenSurface();
-  mSurface->setFormat(mSharedContext->format());
-  mSurface->create();
-
-  if (!mSurface->isValid()) {
-    logMessage("Failed to create offscreen surface", Qgis::MessageLevel::Critical);
-    delete mSurface;
-    mSurface = nullptr;
-    return;
-  }
-
-  mSharedContext->makeCurrent(mSurface);
-  basePlaneWidget = std::make_shared<gl::BasePlane>();
-  mSharedContext->doneCurrent();
+OpenGLScene::OpenGLScene(QOpenGLContext* context) {
+    this->context = context;
+    context->makeCurrent(context->surface());
+    basePlaneWidget = std::make_shared<gl::BasePlane>();
+    const QString objFilePath = "/mnt/repo/comprehensive3S/test/Tile_+000_+000.obj";
+    //modelWidget = std::make_shared<gl::Model>(objFilePath);
+    context->doneCurrent();
+    logMessage("OpenGLScene initialized", Qgis::MessageLevel::Success);
 }
 
 OpenGLScene::~OpenGLScene() {
-  cleanupResources();
-  
-  if (mSurface) {
-    delete mSurface;
-    mSurface = nullptr;
-  }
-  
-  routes.clear();
+    cleanupResources();
+    routes.clear();
 }
 
 void OpenGLScene::cleanupResources() {
-  if (!mSharedContext || !mSurface) {
-    return;
-  }
-
-  mSharedContext->makeCurrent(mSurface);
-  
-  if (modelWidget) {
-    modelWidget->cleanupTextures();
-  }
-  
-  mSharedContext->doneCurrent();
+    if (context->makeCurrent(context->surface())) {
+        if (modelWidget) {
+            modelWidget->cleanupTextures();
+        }
+        context->doneCurrent();
+    }
 }
 
 void OpenGLScene::paintScene(const QMatrix4x4 &view, const QMatrix4x4 &projection) {
-  if (!mSharedContext || !mSurface) {
-    logMessage("Shared context or surface is null", Qgis::MessageLevel::Critical);
-    return;
-  }
-
-  mSharedContext->makeCurrent(mSurface);
-  if (basePlaneWidget)
-    basePlaneWidget->draw(view, projection);
-  if (modelWidget)
-    modelWidget->draw(view, projection);
-  mSharedContext->doneCurrent();
+    if (!QOpenGLContext::currentContext()) {
+        logMessage("OpenGL context is not current", Qgis::MessageLevel::Critical);
+        return;
+    }
+    if (basePlaneWidget) {
+        basePlaneWidget->draw(view, projection);
+    }
+    if (modelWidget) {
+        modelWidget->draw(view, projection);
+    }
 }
 
 void OpenGLScene::loadModel(const QString &objFilePath) {
-  logMessage("OpenGLScene::loadModel", Qgis::MessageLevel::Info);
-  if (!mSharedContext || !mSurface) {
-    logMessage("Shared context or surface is null", Qgis::MessageLevel::Critical);
-    return;
-  }
+    logMessage("OpenGLScene::loadModel", Qgis::MessageLevel::Info);
+    if (!QOpenGLContext::currentContext()) {
+        logMessage("OpenGL context is not current", Qgis::MessageLevel::Critical);
+        return;
+    }
+    // Clean up old resources before loading new model
+    if (modelWidget)
+      modelWidget->cleanupTextures();
 
-  // 在加载新模型前清理旧资源
-  cleanupResources();
-
-  mSharedContext->makeCurrent(mSurface);
-  modelWidget = std::make_shared<gl::Model>(objFilePath);
-  mSharedContext->doneCurrent();
-  logMessage("Model loaded", Qgis::MessageLevel::Success);
-}
-
+    if (context->makeCurrent(context->surface())) {
+        modelWidget = std::make_shared<gl::Model>(objFilePath);
+        context->doneCurrent();
+        logMessage("Model loaded", Qgis::MessageLevel::Success);
+    }
+} 
 void OpenGLCanvas::mousePressEvent(QMouseEvent *event) {
     mLastMousePos = event->pos();
 }
@@ -261,8 +203,8 @@ void OpenGLCanvas::keyReleaseEvent(QKeyEvent *event) {
 }
 
 void OpenGLCanvas::loadModel(const QString &objFilePath) {
-  logMessage("OpenGLCanvas::loadModel", Qgis::MessageLevel::Info);
-  makeCurrent();
-  mpScene->loadModel(objFilePath);
-  doneCurrent();
+    logMessage("OpenGLCanvas::loadModel", Qgis::MessageLevel::Info);
+    makeCurrent();
+    mpScene->loadModel(objFilePath);
+    doneCurrent();
 }
