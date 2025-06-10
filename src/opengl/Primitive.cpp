@@ -447,12 +447,6 @@ Model::~Model(){
   logMessage("Model destroyed", Qgis::MessageLevel::Success);
 }
 
-  if (progressUpdateInterval >= 97) {
-    progressDialog->close();
-    delete progressDialog;
-    progressDialog = nullptr;
-  }
-
 void gl::Model::cleanupTextures() {
   if (!texture->isCreated()) {
     return;
