@@ -167,7 +167,7 @@ BasePlane::BasePlane(const QVector4D &color)
   const GLfloat step = DEFAULT_STEP;
   this->vertexNum = (2 * size / step + 1) * 2 * 2; // (x + y) * ((size - (-size)) / step + 1) * 2 points(stand for one line)
   this->vertices = new GLfloat[this->vertexNum * 3];
-  double baseHeight = ws::FlightManager::getInstance().getBaseHeight();
+  double baseHeight = wsp::FlightManager::getInstance().getBaseHeight();
   logMessage(QString("Base height: %1").arg(baseHeight), Qgis::MessageLevel::Info);
   GLuint index = 0;
   for (GLfloat x = -size; x <= size; x += step) {
@@ -574,7 +574,7 @@ void Drone::draw(const QMatrix4x4 &view, const QMatrix4x4 &projection){
   Camera &camera = Camera::getInstance();
   QMatrix4x4 cameraModelMatrix;
   QVector3D dronePosition = camera.mPosition + camera.mFront * mDis2Camera - camera.mUp * 0.2 * mDis2Camera;
-  ws::FlightManager& flightManager = ws::FlightManager::getInstance();
+  wsp::FlightManager& flightManager = wsp::FlightManager::getInstance();
   flightManager.setPorision(dronePosition);
   cameraModelMatrix.translate(dronePosition);
   cameraModelMatrix.rotate(camera.mRotation);

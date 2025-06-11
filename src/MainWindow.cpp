@@ -15,7 +15,7 @@
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   logMessage("Application started", Qgis::MessageLevel::Info);
-  ws::initializeWorkspaceState();
+  wsp::initializeWorkspaceState();
   initWindowStatus();
   
   mpMenuBar = new MenuBar(this);
@@ -70,7 +70,7 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::createSlots() {
-  using namespace ws;
+  using namespace wsp;
   connect(mpCanvas, &Canvas::refreashParms, mpLeftDockWidget->getFlightQueryGroup(), &FlightQueryGroup::refreshFlightParams);
   connect(mpLeftDockWidget->getViewGroup(), &ViewGroup::switchTo3D, mpCanvas,
           &Canvas::switchTo3D);

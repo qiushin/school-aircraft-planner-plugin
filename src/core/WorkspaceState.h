@@ -24,7 +24,7 @@ struct Bounds{
         : min(min), max(max), center(center) {}
     void merge(const Bounds& bounds);
 };
-namespace ws{
+namespace wsp{
 void initializeWorkspaceState();
 
 enum class CanvasType : unsigned char{

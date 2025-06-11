@@ -13,13 +13,13 @@ Canvas::Canvas(QWidget *parent) : QStackedWidget(parent) {
 
 // switch to 3D
 void Canvas::switchTo3D() {
-  ws::WindowManager::getInstance().setCurrentCanvas(ws::CanvasType::ThreeD);
+  wsp::WindowManager::getInstance().setCurrentCanvas(wsp::CanvasType::ThreeD);
   setCurrentWidget(mpOpenGLWidget);
   logMessage("switch to 3D model view", Qgis::MessageLevel::Success);
 }
 // switch to 2D
 void Canvas::switchTo2D() {
-  ws::WindowManager::getInstance().setCurrentCanvas(ws::CanvasType::TwoD);
+  wsp::WindowManager::getInstance().setCurrentCanvas(wsp::CanvasType::TwoD);
   setCurrentWidget(mpImageLabel); // switch to 2D map view
   logMessage("switch to 2D map view", Qgis::MessageLevel::Success);
 }

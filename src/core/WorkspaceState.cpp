@@ -15,28 +15,28 @@ static QString GetHomeDirectory() {
 #endif
 }
 
-QObject *ws::WindowManager::pDefaultObject = nullptr;
+QObject *wsp::WindowManager::pDefaultObject = nullptr;
 
-void ws::initializeWorkspaceState() {
+void wsp::initializeWorkspaceState() {
   PathManager::getInstance();
   logMessage("WorkspaceState initialized", Qgis::MessageLevel::Success);
 }
 
-ws::PathManager::PathManager() {
+wsp::PathManager::PathManager() {
   QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
   mRootDir = GetHomeDirectory();
 }
 
-ws::PathManager::~PathManager() { mObjTexturePairs.clear(); }
+wsp::PathManager::~PathManager() { mObjTexturePairs.clear(); }
 
-void ws::PathManager::findAllObjAndTexturePaths() {
+void wsp::PathManager::findAllObjAndTexturePaths() {
   QDir dir(mRootDir);
   QStringList objFiles = dir.entryList(QStringList() << "*.obj", QDir::Files);
   QStringList textureFiles =
       dir.entryList(QStringList() << "*.jpg", QDir::Files);
 }
 
-ObjTexturePair ws::PathManager::getObjTexturePair(int index) const {
+ObjTexturePair wsp::PathManager::getObjTexturePair(int index) const {
   if (index < 0 || index >= mObjTexturePairs.size()) {
     throw std::out_of_range("Index out of range");
   }
@@ -47,7 +47,7 @@ ObjTexturePair ws::PathManager::getObjTexturePair(int index) const {
   return mObjTexturePairs[index];
 }
 
-ws::EnvManager::EnvManager() {
+wsp::EnvManager::EnvManager() {
   mWeather = WeatherType::Sunny;
   mTemperature = 25.0;
   mPressure = 1013.25;
@@ -55,9 +55,9 @@ ws::EnvManager::EnvManager() {
   mTemperature = 25.0;
   mPressure = 1013.25;
 }
-ws::EnvManager::~EnvManager() {}
+wsp::EnvManager::~EnvManager() {}
 
-ws::FlightManager::FlightManager() {
+wsp::FlightManager::FlightManager() {
   mFlightSpeed = 10.0;
   mFlightBattery = 100.0;
   mBaseHeight = 0.0;
@@ -66,9 +66,9 @@ ws::FlightManager::FlightManager() {
   mBaseHeight = 0.0;
   mMaxAlititude = maxBaseHeight;
 }
-ws::FlightManager::~FlightManager() { mFlightPath.clear(); }
+wsp::FlightManager::~FlightManager() { mFlightPath.clear(); }
 
-ws::WindowManager::WindowManager()
+wsp::WindowManager::WindowManager()
     : QObject(nullptr), mCurrentCanvas(CanvasType::ThreeD),
       is3DMapInited(false), is2DMapInited(false) {
   // 初始化更新定时器
@@ -81,7 +81,7 @@ ws::WindowManager::WindowManager()
   mBounds = Bounds();
 }
 
-ws::WindowManager::~WindowManager() {
+wsp::WindowManager::~WindowManager() {
   if (mUpdateTimer) {
     mUpdateTimer->stop();
     delete mUpdateTimer;
@@ -89,19 +89,19 @@ ws::WindowManager::~WindowManager() {
   delete pDefaultObject;
 }
 
-void ws::WindowManager::keyPressEvent(QKeyEvent *event) {
+void wsp::WindowManager::keyPressEvent(QKeyEvent *event) {
   mKeyStates[event->key()] = true;
 }
 
-void ws::WindowManager::keyReleaseEvent(QKeyEvent *event) {
+void wsp::WindowManager::keyReleaseEvent(QKeyEvent *event) {
   mKeyStates[event->key()] = false;
 }
 
-bool ws::WindowManager::isKeyPressed(int key) const {
+bool wsp::WindowManager::isKeyPressed(int key) const {
   return mKeyStates.value(key, false);
 }
 
-void ws::WindowManager::update3DCameraMovement() {
+void wsp::WindowManager::update3DCameraMovement() {
   float step = 0.5f;
   Camera &camera = Camera::getInstance();
   
@@ -121,11 +121,11 @@ void ws::WindowManager::update3DCameraMovement() {
     camera.resetView();
 }
 
-void ws::WindowManager::update2DCameraMovement() {
+void wsp::WindowManager::update2DCameraMovement() {
   return;
 }
 
-void ws::WindowManager::updateCameraMovement() {
+void wsp::WindowManager::updateCameraMovement() {
   if (mCurrentCanvas == CanvasType::ThreeD) {
     update3DCameraMovement();
   }
@@ -135,7 +135,7 @@ void ws::WindowManager::updateCameraMovement() {
 }
 
 // add new slot function at the end of the file
-QString ws::FlightManager::queryFlightParameters() {
+QString wsp::FlightManager::queryFlightParameters() {
   QString params = QString("Current Flight Parameters:\n"
                            "Speed: %1 m/s\n"
                            "Altitude: %2 m\n"
@@ -149,12 +149,12 @@ QString ws::FlightManager::queryFlightParameters() {
   return params;
 }
 
-void ws::EnvManager::generateRandomWeather() {
+void wsp::EnvManager::generateRandomWeather() {
   logMessage("generate random weather data", Qgis::MessageLevel::Info);
   WeatherType weather =
       static_cast<WeatherType>(QRandomGenerator::global()->bounded(5));
 
-  ws::EnvManager &envManager = ws::EnvManager::getInstance();
+  wsp::EnvManager &envManager = wsp::EnvManager::getInstance();
   double temperature =
       QRandomGenerator::global()->bounded(envManager.minTemperature * 10,
                                           envManager.maxTemperature * 10) /
@@ -170,30 +170,30 @@ void ws::EnvManager::generateRandomWeather() {
   setPressure(pressure);
 }
 
-void ws::AnimationManager::startSimulation() {
+void wsp::AnimationManager::startSimulation() {
   mIsAnimating = true;
   mIsPaused = false;
   mAnimationProgress = 0.0f;
 }
 
-void ws::AnimationManager::pauseSimulation() { mIsPaused = true; }
+void wsp::AnimationManager::pauseSimulation() { mIsPaused = true; }
 
-void ws::AnimationManager::resumeSimulation() { mIsPaused = false; }
+void wsp::AnimationManager::resumeSimulation() { mIsPaused = false; }
 
-void ws::AnimationManager::returnToHome() {
+void wsp::AnimationManager::returnToHome() {
   mAnimationProgress = 0.0f;
   mIsAnimating = false;
   mIsPaused = false;
 }
 
 
-void ws::AnimationManager::stopSimulation() {
+void wsp::AnimationManager::stopSimulation() {
   mIsAnimating = false;
   mIsPaused = false;
   mAnimationProgress = 0.0f;
 }
 
-ws::AnimationManager::AnimationManager() : QObject() {
+wsp::AnimationManager::AnimationManager() : QObject() {
   mIsAnimating = false;
   mIsPaused = false;
   mAnimationProgress = 0.0f;

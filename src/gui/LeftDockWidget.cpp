@@ -132,7 +132,7 @@ RouteGroup::RouteGroup(QWidget *parent)
 }
 
 void FlightSimGroup::createSpins() {
-  using namespace ws;
+  using namespace wsp;
   FlightManager &flightManager = FlightManager::getInstance();
   mpSpeedSpin = new QDoubleSpinBox(this);
   mpSpeedSpin->setObjectName("pSpeedSpin");
@@ -201,7 +201,7 @@ FlightSimGroup::FlightSimGroup(QWidget *parent)
 }
 
 void FlightQueryGroup::createDialog() {
-  using namespace ws;
+  using namespace wsp;
   FlightManager &flightManager = FlightManager::getInstance();
   mpFlightParamsDisplay =
       new QLabel(flightManager.queryFlightParameters(), this);
@@ -242,7 +242,7 @@ void FlightQueryGroup::createDialog() {
 }
 
 void FlightQueryGroup::refreshFlightParams() {
-  using namespace ws;
+  using namespace wsp;
   FlightManager &flightManager = FlightManager::getInstance();
   flightManager.setFlightSpeed(mpSpeedSpin->value());
   flightManager.setFlightBattery(mpBatterySpin->value());
@@ -290,21 +290,21 @@ void EnvQueryGroup::createDialog() {
 
   mpEnvParamsForm = new QFormLayout(mpEnvParamsDialog);
 
-  ws::EnvManager &envManager = ws::EnvManager::getInstance();
+  wsp::EnvManager &envManager = wsp::EnvManager::getInstance();
   mpWeatherCombo = new QComboBox(mpEnvParamsDialog);
   mpWeatherCombo->addItems(envManager.weatherList);
   mpWeatherCombo->setCurrentText(envManager.getWeatherString());
   mpEnvParamsForm->addRow(tr("Weather Condition:"), mpWeatherCombo);
 
   mpTemperatureSpin = new QDoubleSpinBox(mpEnvParamsDialog);
-  mpTemperatureSpin->setRange(ws::EnvManager::minTemperature,
-                              ws::EnvManager::maxTemperature);
+  mpTemperatureSpin->setRange(wsp::EnvManager::minTemperature,
+                              wsp::EnvManager::maxTemperature);
   mpTemperatureSpin->setValue(envManager.getTemperature());
   mpEnvParamsForm->addRow(tr("Temperature (°C):"), mpTemperatureSpin);
 
   mpPressureSpin = new QDoubleSpinBox(mpEnvParamsDialog);
-  mpPressureSpin->setRange(ws::EnvManager::minPressure,
-                           ws::EnvManager::maxPressure);
+  mpPressureSpin->setRange(wsp::EnvManager::minPressure,
+                           wsp::EnvManager::maxPressure);
   mpPressureSpin->setValue(envManager.getPressure());
   mpEnvParamsForm->addRow(tr("Pressure (hPa):"), mpPressureSpin);
 
@@ -318,10 +318,10 @@ void EnvQueryGroup::createDialog() {
 }
 
 void EnvQueryGroup::refreshEnvParams() {
-  using namespace ws;
+  using namespace wsp;
   EnvManager &envManager = EnvManager::getInstance();
   envManager.setWeather(
-      static_cast<ws::WeatherType>(mpWeatherCombo->currentIndex()));
+      static_cast<wsp::WeatherType>(mpWeatherCombo->currentIndex()));
   envManager.setTemperature(mpTemperatureSpin->value());
   envManager.setPressure(mpPressureSpin->value());
   mpWeatherLabel->setText(
@@ -334,8 +334,8 @@ void EnvQueryGroup::refreshEnvParams() {
 
 void EnvQueryGroup::createSlots() {
   connect(mpBtnRefreshData, &QPushButton::clicked,
-          &ws::EnvManager::getInstance(),
-          &ws::EnvManager::generateRandomWeather);
+          &wsp::EnvManager::getInstance(),
+          &wsp::EnvManager::generateRandomWeather);
   connect(mpEnvParamsButtonBox, &QDialogButtonBox::accepted, mpEnvParamsDialog,
           &QDialog::accept);
   connect(mpEnvParamsButtonBox, &QDialogButtonBox::rejected, mpEnvParamsDialog,
@@ -348,7 +348,7 @@ EnvQueryGroup::EnvQueryGroup(QWidget *parent)
     : FunctionGroup(tr("Environmental Data"), "basicDataGroup", parent) {
   setObjectName("basicDataGroup");
 
-  ws::EnvManager &envManager = ws::EnvManager::getInstance();
+  wsp::EnvManager &envManager = wsp::EnvManager::getInstance();
   mpWeatherLabel = new QLabel(
       QString("Weather: %1").arg(envManager.getWeatherString()), this);
   mpTemperatureLabel = new QLabel(

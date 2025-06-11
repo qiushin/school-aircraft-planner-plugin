@@ -31,7 +31,7 @@ void FileTreeWidget::createTreeWidget() {
   mpTreeWidget->setObjectName("fileTreeWidget");
   mpTreeWidget->setHeaderLabel(tr("File List"));
   mpRootItem = nullptr;
-  QString dirPath = ws::PathManager::getInstance().getRootDir();
+  QString dirPath = wsp::PathManager::getInstance().getRootDir();
   logMessage("init empty file tree", Qgis::MessageLevel::Info);
   loadDirectoryFiles(dirPath);
 }
@@ -152,7 +152,7 @@ QString FileTreeWidget::getItemFullPath(QTreeWidgetItem *item) {
   }
   if (item)
     pathParts.prepend(item->text(0));
-  QString rootPath = ws::PathManager::getInstance().getRootDir();
+  QString rootPath = wsp::PathManager::getInstance().getRootDir();
   return QDir(rootPath).filePath(pathParts.join("/"));
 }
 
@@ -171,7 +171,7 @@ void FileTreeWidget::onTreeItemDoubleClicked(QTreeWidgetItem *item,
 
 void FileTreeWidget::onSelectDirectoryClicked() {
   // open folder selection dialog
-  QString currentDir = ws::PathManager::getInstance().getRootDir();
+  QString currentDir = wsp::PathManager::getInstance().getRootDir();
   QString dirPath = QFileDialog::getExistingDirectory(
       this, tr("Select Directory"), currentDir);
   logMessage(QString("select file list directory: %1").arg(dirPath),

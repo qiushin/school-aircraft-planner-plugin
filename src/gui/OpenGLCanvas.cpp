@@ -199,12 +199,12 @@ void OpenGLCanvas::wheelEvent(QWheelEvent *event) {
 }
 
 void OpenGLCanvas::keyPressEvent(QKeyEvent *event) {
-    ws::WindowManager::getInstance().keyPressEvent(event);
+    wsp::WindowManager::getInstance().keyPressEvent(event);
     update();
 }
 
 void OpenGLCanvas::keyReleaseEvent(QKeyEvent *event) {
-    ws::WindowManager::getInstance().keyReleaseEvent(event);
+    wsp::WindowManager::getInstance().keyReleaseEvent(event);
     update();
 }
 
