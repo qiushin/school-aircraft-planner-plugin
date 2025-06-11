@@ -14,6 +14,7 @@
 #include <QtMath>
 #include <cfloat>
 #include <memory>
+#include <qvector3d.h>
 
 namespace gl {
 class Primitive : public QObject{
@@ -73,10 +74,12 @@ public:
             const QVector4D &color = QVector4D(1.0f, 1.0f, 1.0f, 1.0f));
 };
 
-class HomePoint : public ColorPrimitive {
+class SinglePoint : public ColorPrimitive {
 public:
-  HomePoint(const QVector<QVector3D> &vertices,
+  SinglePoint(const QVector<QVector3D> &vertices,
             const QVector4D &color = QVector4D(1.0f, 1.0f, 1.0f, 1.0f));
+private:
+  float pointSize;
 };
 
 class ControlPoints : public ColorPrimitive {
@@ -91,30 +94,44 @@ public:
              const QVector4D &color = QVector4D(1.0f, 1.0f, 1.0f, 1.0f));
 };
 
-class Model : public Primitive {
-  std::shared_ptr<model::ModelData> modelData;
-
+class Drone : public ColorPrimitive {
 public:
-  Model(const QString &objFilePath);
-  ~Model();
+  Drone(const QString &objFilePath);
+  ~Drone();
   void draw(const QMatrix4x4 &view, const QMatrix4x4 &projection) override;
-  QVector3D getModelCenter() const { return modelData->mBounds.center; }
+  QVector3D getCenter() const { return modelData->mBounds.center; }
   const Bounds &getBounds() const { return modelData->mBounds; }
-  void setBounds(const Bounds &bounds) { modelData->mBounds = bounds; }
-  void cleanupTextures();
-  void loadModel(const QString &objFilePath);
 
 protected:
-  std::shared_ptr<QOpenGLTexture> texture;
-  void generateTexture(const QString &texturePath);
+  double mDis2Camera;
+  std::shared_ptr<model::ModelData> modelData;
+  std::shared_ptr<SinglePoint> center;
   void initModelData();
-  void initDemoModelData();
 };
 
-class Demo : public ColorPrimitive {
+class ModelGroup : public Primitive {
 public:
-  Demo();
-  // void draw(const QMatrix4x4 &view, const QMatrix4x4 &projection) override;
+  ModelGroup(const QString &objFileFolderPath);
+  ~ModelGroup();
+  void draw(const QMatrix4x4 &view, const QMatrix4x4 &projection) override;
+  QVector3D getCenter() const { return mBounds.center; }
+  const Bounds &getBounds() const { return mBounds; }
+  void clear();
+
+protected:
+  Bounds mBounds;
+  void calcBounds();
+  QString objFileFolderPath;
+  QVector<QString> objFilePaths;
+  QString retriveObjFilePath(const QString &subDirPath);
+  QVector<std::shared_ptr<QOpenGLTexture>> textures;
+  void generateTexture(const QString &texturePath);
+  void initModelData();
+  QVector<GLuint> verticesRange;
+  QVector<std::shared_ptr<model::ModelData>> models;
+  //QVector<std::shared_ptr<QOpenGLShaderProgram>> shaders;
+  //std::shared_ptr<QOpenGLShaderProgram> constructMultiShader(const QString& vertexShaderPath, const QString& fragmentShaderPath);
 };
+
 } // namespace gl
 #endif // PRIMITIVE_H

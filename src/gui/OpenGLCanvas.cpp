@@ -17,6 +17,7 @@
 #include <qgis.h>
 #include <qgsapplication.h>
 #include <qtimer.h>
+#include <qvector3d.h>
 #include <qvector4d.h>
 #include <qthread.h>
 #include "../core/WorkspaceState.h"
@@ -113,6 +114,7 @@ void OpenGLCanvas::paintGL() {
     mpScene->paintScene(view, projection);
   }
   
+  emit refreash3DParms();
   GLenum err;
   while ((err = glGetError()) != GL_NO_ERROR) {
     logMessage(QString("OpenGL error in paintGL: %1").arg(err), 
@@ -124,6 +126,7 @@ OpenGLScene::OpenGLScene(QOpenGLContext* context) {
     this->context = context;
     context->makeCurrent(context->surface());
     basePlaneWidget = std::make_shared<gl::BasePlane>();
+    droneWidget = std::make_shared<gl::Drone>(":/schoolcore/models/drone.obj");
     logMessage("OpenGLScene initialized", Qgis::MessageLevel::Success);
 }
 
@@ -148,11 +151,18 @@ void OpenGLScene::paintScene(const QMatrix4x4 &view, const QMatrix4x4 &projectio
         logMessage("OpenGL context is not current", Qgis::MessageLevel::Critical);
         return;
     }
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
     if (basePlaneWidget) {
         basePlaneWidget->draw(view, projection);
     }
     if (modelWidget) {
         modelWidget->draw(view, projection);
+    }
+    //glDisable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+    if (droneWidget) {
+        droneWidget->draw(view, projection);
     }
 }
 
@@ -164,11 +174,11 @@ void OpenGLScene::loadModel(const QString &objFilePath) {
     }
     // Clean up old resources before loading new model
     if (modelWidget)
-      modelWidget->cleanupTextures();
+      modelWidget->clear();
 
-    modelWidget = std::make_shared<gl::Model>(objFilePath);
+    modelWidget = std::make_shared<gl::ModelGroup>(objFilePath);
 
-    Camera::getInstance().setPosition(modelWidget->getModelCenter());
+    Camera::getInstance().setPosition(modelWidget->getBounds().center);
 } 
 void OpenGLCanvas::mousePressEvent(QMouseEvent *event) {
     mLastMousePos = event->pos();

@@ -50,6 +50,9 @@ private:
 
 public slots:
     void loadModel(const QString &objFilePath);
+
+signals:
+    void refreash3DParms();
 };
 
 class OpenGLScene {
@@ -62,8 +65,9 @@ public:
     void cleanupResources();
 
 protected:
-    std::shared_ptr<gl::Model> modelWidget;
+    std::shared_ptr<gl::ModelGroup> modelWidget;
     std::shared_ptr<gl::BasePlane> basePlaneWidget;
+    std::shared_ptr<gl::Drone> droneWidget;
     QVector<std::shared_ptr<Route>> routes;
     QOpenGLContext* context;
 };
