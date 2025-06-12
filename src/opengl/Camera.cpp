@@ -36,12 +36,12 @@ void Camera::setAspectRatio(float ratio) {
     mAspectRatio = ratio;
 }
 
-void Camera::setNearPlane(float near) {
-    mNearPlane = near;
+void Camera::setNearPlane(float mfnear) {
+    mNearPlane = mfnear;
 }
 
-void Camera::setFarPlane(float far) {
-    mFarPlane = far;
+void Camera::setFarPlane(float mffar) {
+    mFarPlane = mffar;
 }
 
 QMatrix4x4 Camera::viewMatrix() const {

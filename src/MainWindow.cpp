@@ -202,7 +202,7 @@ void MainWindow::showUserManual() {
     content = in.readAll();
     manualFile.close();
   } else {
-    content = tr("无法加载用户手册文件。");
+    content = tr("cannot add user note");
     logMessage("Failed to load user manual file", Qgis::MessageLevel::Warning);
   }
 
@@ -213,7 +213,7 @@ void MainWindow::showUserManual() {
     content += "\n\n" + in.readAll();
     copyrightFile.close();
   } else {
-    logMessage("无法加载开发者信息", Qgis::MessageLevel::Warning);
+    logMessage("cannot add developer note", Qgis::MessageLevel::Warning);
   }
 
   textEdit->setText(content);
