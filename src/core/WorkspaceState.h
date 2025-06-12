@@ -212,7 +212,6 @@ public slots:
 private:
     double mAnimationSpeed;
     bool mIsAnimating;
-    bool mIsPaused;
     void updateAnimation();
     bool mCameraFollowAircraft;
     QVector3D mViewTranslation;

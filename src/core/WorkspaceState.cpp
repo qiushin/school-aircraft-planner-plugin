@@ -173,7 +173,6 @@ void wsp::AnimationManager::startSimulation() {
     return;
   }
   mIsAnimating = true;
-  mIsPaused = false;
   mAnimationProgress = 0.0f;
   currentPathIndex = 0;
   Camera &camera = Camera::getInstance();
@@ -182,14 +181,13 @@ void wsp::AnimationManager::startSimulation() {
   camera.setPosition(routePlanner.getHomePoint());
 }
 
-void wsp::AnimationManager::pauseSimulation() { mIsPaused = true; }
+void wsp::AnimationManager::pauseSimulation() { mIsAnimating = true; }
 
-void wsp::AnimationManager::resumeSimulation() { mIsPaused = false; }
+void wsp::AnimationManager::resumeSimulation() { mIsAnimating = false; }
 
 void wsp::AnimationManager::returnToHome() {
   mAnimationProgress = 0.0f;
   mIsAnimating = false;
-  mIsPaused = false;
   currentPathIndex = 0;
   Camera &camera = Camera::getInstance();
   RoutePlanner &routePlanner = RoutePlanner::getInstance();
@@ -198,13 +196,11 @@ void wsp::AnimationManager::returnToHome() {
 
 void wsp::AnimationManager::stopSimulation() {
   mIsAnimating = false;
-  mIsPaused = false;
   mAnimationProgress = 0.0f;
 }
 
 wsp::AnimationManager::AnimationManager() : QObject() {
   mIsAnimating = false;
-  mIsPaused = false;
   mAnimationProgress = 0.0f;
   mAnimationSpeed = 0.1f;
 }

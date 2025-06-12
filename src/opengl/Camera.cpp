@@ -107,12 +107,12 @@ void Camera::checkProcess(){
     QVector3D currentStart = animationManager.mPath[2 * currentIndex];
     QVector3D currentEnd = animationManager.mPath[2 * currentIndex + 1];
     QVector3D direction = (currentEnd - currentStart).normalized();
-    if (length(currentEnd - mPosition) < length(direction)){
+    float dis = length(currentEnd - mPosition);
+    if (length(currentStart - currentEnd) < length(currentStart - mPosition)) {
         ++animationManager.currentPathIndex;
-        if (animationManager.currentPathIndex >= animationManager.mPath.size() / 2){
+        if (animationManager.currentPathIndex >= animationManager.mPath.size() / 2)
             animationManager.currentPathIndex = 0;
-            animationManager.returnToHome();
-        }
+        mPosition = animationManager.mPath[2 * animationManager.currentPathIndex];
     }
     mFront = direction;
     moveForward(animationManager.getAnimationSpeed());

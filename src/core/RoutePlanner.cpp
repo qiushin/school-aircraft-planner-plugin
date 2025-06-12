@@ -163,7 +163,7 @@ void RoutePlanner::createRoute() {
   QVector<QVector3D> convexHullLocation;
   generateConvexHull(drawingPoint, convexHullLocation);
   std::shared_ptr<gl::ConvexHull> convexHull =
-      std::make_shared<gl::ConvexHull>(convexHullLocation);
+      std::make_shared<gl::ConvexHull>(convexHullLocation, QVector4D(0.0f, 0.8f, 0.8f, 1.0f));
 
   QVector<QVector3D> routePathLocation;
   generateRoutePath(drawingPoint, homePointLocation,
@@ -388,8 +388,8 @@ void Route::draw(const QMatrix4x4 &view, const QMatrix4x4 &projection){
     homePoint->draw(view, projection);
   if (controlPoints)
     controlPoints->draw(view, projection);
-  if (convexHull)
-    convexHull->draw(view, projection);
   if (path)
     path->draw(view, projection);
+  if (convexHull)
+    convexHull->draw(view, projection);
 }
