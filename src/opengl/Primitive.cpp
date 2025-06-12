@@ -47,14 +47,14 @@ Primitive::Primitive(GLenum primitiveType, GLuint stride)
 }
 
 Primitive::~Primitive() {
-  logMessage("ready to destroy Primitive", Qgis::MessageLevel::Info);
+  //logMessage("ready to destroy Primitive", Qgis::MessageLevel::Info);
   if (QOpenGLContext::currentContext()) {
     this->vao.destroy();
     this->vbo.destroy();
     this->shader = nullptr;
     delete[] this->vertices;
   }
-  logMessage("Primitive destroyed", Qgis::MessageLevel::Success);
+  //logMessage("Primitive destroyed", Qgis::MessageLevel::Success);
 }
 
 void Primitive::checkGLError(const QString &funcName) {
@@ -145,10 +145,13 @@ void ColorPrimitive::draw(const QMatrix4x4 &view, const QMatrix4x4 &projection){
 }
 
 void ColorPrimitive::initShaderAllocate(){
-  vao.create();
-  vbo.create();
+  if (!this->vao.isCreated())
+    this->vao.create();
+  if (!this->vbo.isCreated())
+    this->vbo.create();
   this->vao.bind();
   this->vbo.bind();
+  this->vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
   this->shader->bind();
   this->shader->enableAttributeArray(0);
   this->shader->setAttributeBuffer(0, GL_FLOAT, 0, 3, this->stride * sizeof(GLfloat));
@@ -159,30 +162,31 @@ void ColorPrimitive::initShaderAllocate(){
   this->vao.release();
 }
 
-BasePlane::BasePlane(const QVector4D &color)
-    : ColorPrimitive(GL_LINES, color) {
+BasePlane::BasePlane(Bounds bounds, double baseHeight, const QVector4D &color) : ColorPrimitive(GL_LINES, color) {
+  logMessage(QString("BasePlane bounds: %1, %2, %3, %4").arg(bounds.min.x()).arg(bounds.min.y()).arg(bounds.max.x()).arg(bounds.max.y()), Qgis::MessageLevel::Info);
+  logMessage(QString("BasePlane baseHeight: %1").arg(baseHeight), Qgis::MessageLevel::Info);
   logMessage("start constructing shader", Qgis::MessageLevel::Info);
   constructShader(QStringLiteral(":/schoolcore/shaders/line.vs"), QStringLiteral(":/schoolcore/shaders/line.fs"));
-  const GLfloat size = DEFAULT_SIZE;
   const GLfloat step = DEFAULT_STEP;
-  this->vertexNum = (2 * size / step + 1) * 2 * 2; // (x + y) * ((size - (-size)) / step + 1) * 2 points(stand for one line)
+  int xNum = (bounds.max.x() - bounds.min.x()) / step + 1;
+  int yNum = (bounds.max.y() - bounds.min.y()) / step + 1;
+  this->vertexNum = 2 * (xNum + yNum); // (x + y) * ((size - (-size)) / step + 1) * 2 points(stand for one line)
   this->vertices = new GLfloat[this->vertexNum * 3];
-  double baseHeight = wsp::FlightManager::getInstance().getBaseHeight();
-  logMessage(QString("Base height: %1").arg(baseHeight), Qgis::MessageLevel::Info);
+  logMessage(QString("BasePlane vertices: %1").arg(this->vertexNum), Qgis::MessageLevel::Info);
   GLuint index = 0;
-  for (GLfloat x = -size; x <= size; x += step) {
+  for (GLfloat x = bounds.min.x(); x <= bounds.max.x(); x += step) {
     this->vertices[index++] = x;
-    this->vertices[index++] = -size;
+    this->vertices[index++] = bounds.min.y();
     this->vertices[index++] = baseHeight;
     this->vertices[index++] = x;
-    this->vertices[index++] = size;
+    this->vertices[index++] = bounds.max.y();
     this->vertices[index++] = baseHeight;
   }
-  for (float y = -size; y <= size; y += step) {
-    this->vertices[index++] = -size;
+  for (float y = bounds.min.y(); y <= bounds.max.y(); y += step) {
+    this->vertices[index++] = bounds.min.x();
     this->vertices[index++] = y;
     this->vertices[index++] = baseHeight;
-    this->vertices[index++] = size;
+    this->vertices[index++] = bounds.max.x();
     this->vertices[index++] = y;
     this->vertices[index++] = baseHeight;
   }
@@ -194,30 +198,36 @@ BasePlane::BasePlane(const QVector4D &color)
 }
 
 RoutePath::RoutePath(const QVector<QVector3D>& vertices, const QVector4D& color)
-    : ColorPrimitive(GL_LINE_STRIP, vertices, color) {
+    : ColorPrimitive(GL_LINE_STRIP, vertices, color), routePath(vertices) {
   logMessage("start constructing shader", Qgis::MessageLevel::Info);
   constructShader(QStringLiteral(":/schoolcore/shaders/line.vs"), QStringLiteral(":/schoolcore/shaders/line.fs"));
   initShaderAllocate();
   logMessage("RoutePath initialized", Qgis::MessageLevel::Info);
 }
 
+OrientLine::OrientLine(const QVector<QVector3D>& vertices, const QVector4D& color)
+    : ColorPrimitive(GL_LINES, vertices, color) {
+  logMessage("start constructing shader", Qgis::MessageLevel::Info);
+  constructShader(QStringLiteral(":/schoolcore/shaders/line.vs"), QStringLiteral(":/schoolcore/shaders/line.fs"));
+  initShaderAllocate();
+  logMessage("OrientLine initialized", Qgis::MessageLevel::Info);
+}
+
 ControlPoints::ControlPoints(const QVector<QVector3D>& vertices, const QVector4D& color)
     : ColorPrimitive(GL_POINTS, vertices, color) {
   logMessage("start constructing shader", Qgis::MessageLevel::Info);
-  constructShader(QStringLiteral(":/schoolcore/shaders/point.vs"), QStringLiteral(":/schoolcore/shaders/point.fs"), QStringLiteral(":/schoolcore/shaders/point.gs"));
+  constructShader(QStringLiteral(":/schoolcore/shaders/line.vs"), QStringLiteral(":/schoolcore/shaders/line.fs"));
   initShaderAllocate();
+  logMessage(QString("control Pointsize is %1").arg(vertexNum), Qgis::MessageLevel::Info);
   logMessage("ControlPoints initialized", Qgis::MessageLevel::Info);
 }
 
-SinglePoint::SinglePoint(const QVector<QVector3D>& vertices, const QVector4D& color)
-    : ColorPrimitive(GL_TRIANGLE_STRIP, vertices, color) {
+SinglePoint::SinglePoint(const QVector3D& vertices, const QVector4D& color)
+    : ColorPrimitive(GL_POINTS, QVector<QVector3D>{vertices}, color), point(vertices) {
   logMessage("start constructing shader", Qgis::MessageLevel::Info);
   //constructShader(QStringLiteral(":/schoolcore/shaders/point.vs"), QStringLiteral(":/schoolcore/shaders/point.fs"), QStringLiteral(":/schoolcore/shaders/point.gs"));
   constructShader(QStringLiteral(":/schoolcore/shaders/line.vs"), QStringLiteral(":/schoolcore/shaders/line.fs"));
   initShaderAllocate();
-  this->shader->bind();
-  this->shader->setUniformValue("radius",10);
-  this->shader->release();
   logMessage("SinglePoint initialized", Qgis::MessageLevel::Info);
 }
 
@@ -359,6 +369,8 @@ void ModelGroup::draw(const QMatrix4x4 &view, const QMatrix4x4 &projection) {
     }
     this->shader->release();
     this->vao.release();
+    if (wsp::WindowManager::getInstance().isEditing())
+      this->basePlaneWidget->draw(view, projection);
 }
 /*
 std::shared_ptr<QOpenGLShaderProgram> ModelGroup::constructMultiShader(const QString& vertexShaderPath, const QString& fragmentShaderPath) {
@@ -470,6 +482,7 @@ ModelGroup::ModelGroup(const QString &objFileFolderPath):Primitive(GL_TRIANGLES,
   }
   initModelData();
   this->calcBounds();
+  this->basePlaneWidget = std::make_shared<BasePlane>(mBounds, wsp::FlightManager::getInstance().getBaseHeight());
 }
 
 QString ModelGroup::retriveObjFilePath(const QString &subDirPath){
@@ -507,22 +520,7 @@ void ModelGroup::calcBounds(){
 Drone::Drone(const QString &objFilePath) : ColorPrimitive(GL_TRIANGLES) {
   modelData = std::make_shared<model::ModelData>(objFilePath);
   initModelData();
-  mDis2Camera = 10;
-  QVector<QVector3D> centerVertices;
-  float bound = 0.4f;
-  // tempoerary
-  centerVertices.append(QVector3D(-bound, -bound,  bound));
-  centerVertices.append(QVector3D( bound, -bound,  bound));
-  centerVertices.append(QVector3D(-bound,  bound,  bound));
-  centerVertices.append(QVector3D( bound,  bound,  bound));
-  centerVertices.append(QVector3D( bound, -bound, -bound));
-  centerVertices.append(QVector3D(-bound, -bound, -bound));
-  centerVertices.append(QVector3D( bound,  bound, -bound));
-  centerVertices.append(QVector3D(-bound,  bound,  bound));
-  centerVertices.append(QVector3D(-bound, -bound, -bound));
-  centerVertices.append(QVector3D(-bound, -bound,  bound));
-  centerVertices.append(QVector3D( bound, -bound, -bound));
-  center = std::make_shared<SinglePoint>(centerVertices,QVector4D(1.0,0.0,0.0,1.0));
+  center = std::make_shared<SinglePoint>(QVector3D(0, 0, 0),QVector4D(1.0,0.0,0.0,1.0));
   logMessage("Drone initialized", Qgis::MessageLevel::Info);
 }
 
@@ -573,19 +571,62 @@ void Drone::initModelData(){
 void Drone::draw(const QMatrix4x4 &view, const QMatrix4x4 &projection){
   Camera &camera = Camera::getInstance();
   QMatrix4x4 cameraModelMatrix;
-  QVector3D dronePosition = camera.mPosition + camera.mFront * mDis2Camera - camera.mUp * 0.2 * mDis2Camera;
+  QVector3D dronePosition;
   wsp::FlightManager& flightManager = wsp::FlightManager::getInstance();
+  if (flightManager.isManualMode())
+    dronePosition = camera.mPosition + camera.mFront * camera.mDis2Camera;
+  else
+    dronePosition = camera.mPosition;
   flightManager.setPorision(dronePosition);
   cameraModelMatrix.translate(dronePosition);
-  cameraModelMatrix.rotate(camera.mRotation);
-  cameraModelMatrix.scale(-0.1, 0.1, 0.1);
+  cameraModelMatrix.scale(0.1, 0.1, 0.1);
+  cameraModelMatrix.rotate(camera.zeroPitchDirect());
   cameraModelMatrix.rotate(90, 0, 0, 1);
-  cameraModelMatrix.rotate(-30, 1, 0, 0);
+  cameraModelMatrix.rotate(90, 1, 0, 0);
+  //cameraModelMatrix.rotate(-30, 1, 0, 0);
   this->shader->bind();
   this->shader->setUniformValue("model", cameraModelMatrix);
   this->shader->release();
   ColorPrimitive::draw(view, projection);
   center->setModelMatrix(cameraModelMatrix);
   center->draw(view, projection);
+}
+
+SelectLine::SelectLine() {
+  orientLine = nullptr;
+  orientPoint = nullptr;
+}
+
+void SelectLine::draw(const QMatrix4x4 &view, const QMatrix4x4 &projection) {
+  QVector<QVector3D> vertices = calcOrientLine(wsp::FlightManager::getInstance().getBaseHeight());
+  orientLine = std::make_shared<gl::OrientLine>(vertices);
+  orientPoint = std::make_shared<gl::SinglePoint>(vertices[1], QVector4D(0.0, 1.0, 0.0, 1.0));
+  orientLine->draw(view, projection);
+  orientPoint->draw(view, projection);
+}
+
+QVector<QVector3D> SelectLine::calcOrientLine(float baseHeight){
+    Camera &camera = Camera::getInstance();
+    QVector4D nearPoint{0.0,-1.0,-1.0,1.0}, farPoint{0.0,0.0,1.0,1.0};
+    QMatrix4x4 invProjection = camera.projectionMatrix().inverted();
+    QMatrix4x4 invView = camera.viewMatrix().inverted();
+    QVector4D clipNear = invProjection * nearPoint;
+    QVector4D clipFar = invProjection * farPoint;
+    clipNear /= clipNear.w();
+    clipFar /= clipFar.w();
+    QVector4D worldNear = invView * clipNear;
+    QVector4D worldFar = invView * clipFar;
+    QVector3D origin(worldNear.x(), worldNear.y(), worldNear.z());
+    QVector3D farPos(worldFar.x(), worldFar.y(), worldFar.z());
+    //logMessage(QString("distance %1").arg((baseHeight - camera.mPosition.z()) / camera.mFront.z()), Qgis::MessageLevel::Info);
+    QVector3D direction = origin + camera.mFront * (baseHeight - camera.mPosition.z()) / camera.mFront.z();//(farPos - origin).normalized();
+  return QVector<QVector3D>{origin, direction};
+}
+
+QVector3D SelectLine::submitPoint(){
+  QVector3D point(orientPoint->vertices[0],
+                  orientPoint->vertices[1],
+                  orientPoint->vertices[2]);
+  return point;
 }
 }

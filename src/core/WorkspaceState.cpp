@@ -1,6 +1,7 @@
 #include "WorkspaceState.h"
 #include "../log/QgisDebug.h"
 #include "../opengl/Camera.h"
+#include "../core/RoutePlanner.h"
 #include <QProcessEnvironment>
 #include <QRandomGenerator>
 #include <QTimer>
@@ -51,20 +52,15 @@ wsp::EnvManager::EnvManager() {
   mWeather = WeatherType::Sunny;
   mTemperature = 25.0;
   mPressure = 1013.25;
-  mWeather = WeatherType::Sunny;
-  mTemperature = 25.0;
-  mPressure = 1013.25;
 }
 wsp::EnvManager::~EnvManager() {}
 
 wsp::FlightManager::FlightManager() {
   mFlightSpeed = 10.0;
   mFlightBattery = 100.0;
-  mBaseHeight = 0.0;
-  mFlightSpeed = 10.0;
-  mFlightBattery = 100.0;
-  mBaseHeight = 0.0;
+  mBaseHeight = 100.0;
   mMaxAlititude = maxBaseHeight;
+  mManualMode = true;
 }
 wsp::FlightManager::~FlightManager() { mFlightPath.clear(); }
 
@@ -79,6 +75,7 @@ wsp::WindowManager::WindowManager()
   if (!pDefaultObject)
     pDefaultObject = new QObject();
   mBounds = Bounds();
+  isEditMode = false;
 }
 
 wsp::WindowManager::~WindowManager() {
@@ -171,9 +168,18 @@ void wsp::EnvManager::generateRandomWeather() {
 }
 
 void wsp::AnimationManager::startSimulation() {
+  if (wsp::FlightManager::getInstance().isManualMode()) {
+    logMessage("Cannot start simulation in manual mode", Qgis::MessageLevel::Warning);
+    return;
+  }
   mIsAnimating = true;
   mIsPaused = false;
   mAnimationProgress = 0.0f;
+  currentPathIndex = 0;
+  Camera &camera = Camera::getInstance();
+  RoutePlanner &routePlanner = RoutePlanner::getInstance();
+  mPath = RoutePlanner::getInstance().getRoutePath();
+  camera.setPosition(routePlanner.getHomePoint());
 }
 
 void wsp::AnimationManager::pauseSimulation() { mIsPaused = true; }
@@ -184,8 +190,11 @@ void wsp::AnimationManager::returnToHome() {
   mAnimationProgress = 0.0f;
   mIsAnimating = false;
   mIsPaused = false;
+  currentPathIndex = 0;
+  Camera &camera = Camera::getInstance();
+  RoutePlanner &routePlanner = RoutePlanner::getInstance();
+  camera.setPosition(routePlanner.getHomePoint()); // Reset camera position
 }
-
 
 void wsp::AnimationManager::stopSimulation() {
   mIsAnimating = false;
@@ -197,8 +206,18 @@ wsp::AnimationManager::AnimationManager() : QObject() {
   mIsAnimating = false;
   mIsPaused = false;
   mAnimationProgress = 0.0f;
-  mAnimationSpeed = 1.0f;
-  mAnimationDirection = QVector3D(1.0f, 0.0f, 0.0f);
+  mAnimationSpeed = 0.1f;
+}
+
+void wsp::FlightManager::setManualMode(bool manual) {
+  mManualMode = manual;
+  if (manual) {
+    logMessage("Flight Manager is now in manual mode", Qgis::MessageLevel::Info);
+    Camera::getInstance().behindView();
+  } else {
+    logMessage("Flight Manager is now in automatic mode", Qgis::MessageLevel::Info);
+    Camera::getInstance().insideView();
+  }
 }
 
 void Bounds::merge(const Bounds& bounds){

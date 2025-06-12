@@ -77,6 +77,7 @@ void OpenGLCanvas::initializeGL() {
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glPointSize(20.0f);
 
   // Initialize shared context manager with our surface
   if (!SharedContextManager::getInstance().initialize(context())) {
@@ -85,6 +86,7 @@ void OpenGLCanvas::initializeGL() {
   }
 
   mpScene = std::make_unique<OpenGLScene>(context());
+  RoutePlanner::getInstance().setContext(context());
   logMessage("OpenGL context initialized", Qgis::MessageLevel::Success);
 }
 
@@ -114,6 +116,7 @@ void OpenGLCanvas::paintGL() {
     mpScene->paintScene(view, projection);
   }
   
+  camera.checkProcess();
   emit refreash3DParms();
   GLenum err;
   while ((err = glGetError()) != GL_NO_ERROR) {
@@ -125,21 +128,20 @@ void OpenGLCanvas::paintGL() {
 OpenGLScene::OpenGLScene(QOpenGLContext* context) {
     this->context = context;
     context->makeCurrent(context->surface());
-    basePlaneWidget = std::make_shared<gl::BasePlane>();
     droneWidget = std::make_shared<gl::Drone>(":/schoolcore/models/drone.obj");
+    selectLine = std::make_shared<gl::SelectLine>();
     logMessage("OpenGLScene initialized", Qgis::MessageLevel::Success);
 }
 
 OpenGLScene::~OpenGLScene() {
   logMessage("ready to destroy OpenGLScene", Qgis::MessageLevel::Info);
-    cleanupResources();
-    routes.clear();
+  cleanupResources();
+  routes.clear();
+  RoutePlanner::getInstance().cleanRoutes();
 }
 
 void OpenGLScene::cleanupResources() {
     if (context->makeCurrent(context->surface())) {
-      if (basePlaneWidget)
-        basePlaneWidget = nullptr;
       if (modelWidget)
           modelWidget = nullptr;
       context->doneCurrent();
@@ -153,17 +155,20 @@ void OpenGLScene::paintScene(const QMatrix4x4 &view, const QMatrix4x4 &projectio
     }
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
-    if (basePlaneWidget) {
-        basePlaneWidget->draw(view, projection);
-    }
     if (modelWidget) {
         modelWidget->draw(view, projection);
     }
-    //glDisable(GL_CULL_FACE);
-    glCullFace(GL_FRONT);
-    if (droneWidget) {
-        droneWidget->draw(view, projection);
+    if (wsp::WindowManager::getInstance().isEditing()) {
+      if (RoutePlanner::getInstance().getDrawMode() != RouteDrawMode::PREVIEWING_ROUTE)
+        selectLine->draw(view, projection);
+    }else{
+      //glDisable(GL_CULL_FACE);
+      glCullFace(GL_FRONT);
+      if (droneWidget) {
+          droneWidget->draw(view, projection);
+      }
     }
+    RoutePlanner::getInstance().drawRoutes(view, projection);
 }
 
 void OpenGLScene::loadModel(const QString &objFilePath) {
@@ -182,6 +187,10 @@ void OpenGLScene::loadModel(const QString &objFilePath) {
 } 
 void OpenGLCanvas::mousePressEvent(QMouseEvent *event) {
     mLastMousePos = event->pos();
+    if (wsp::WindowManager::getInstance().isEditing()){
+      if (event->button() == Qt::RightButton)
+        emit submitEdit();
+    }
 }
 
 void OpenGLCanvas::mouseMoveEvent(QMouseEvent *event) {
@@ -199,7 +208,20 @@ void OpenGLCanvas::wheelEvent(QWheelEvent *event) {
 }
 
 void OpenGLCanvas::keyPressEvent(QKeyEvent *event) {
-    wsp::WindowManager::getInstance().keyPressEvent(event);
+    wsp::WindowManager& windowManager = wsp::WindowManager::getInstance();
+    windowManager.keyPressEvent(event);
+    if (windowManager.isEditing()) {
+      if (windowManager.isKeyPressed(Qt::Key_Space)) {
+        QVector3D point = mpScene->getPoint();
+        emit submitPoint(point);
+      }
+      if (windowManager.isKeyPressed(Qt::Key_K)){
+        Camera& camera = Camera::getInstance();
+        camera.mPosition -= QVector3D(0, 0, wsp::FlightManager::getInstance().getBaseHeight());
+        wsp::WindowManager::getInstance().setEditing(false);
+        RoutePlanner::getInstance().setDrawMode(RouteDrawMode::AVAILABLE);
+      }
+    }
     update();
 }
 

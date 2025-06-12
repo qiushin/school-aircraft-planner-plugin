@@ -122,6 +122,12 @@ JoyDockWidget::JoyDockWidget(QWidget *parent) : QWidget(parent) {
 
   mpMainLayout->addWidget(mpControlPanel);
 
+  mpManualBtn->setEnabled(false);
+  connect(mpManualBtn, &QPushButton::clicked, this, [=](){emit manualMode();});
+  connect(mpAutoBtn, &QPushButton::clicked, this, [=](){emit autoMode();});
+  connect(this, &JoyDockWidget::manualMode, this, &JoyDockWidget::switchToManualMode);
+  connect(this, &JoyDockWidget::autoMode, this, &JoyDockWidget::switchToAutoMode);
+
   logMessage("create joy dock widget", Qgis::MessageLevel::Success);
 }
 
@@ -314,6 +320,7 @@ void JoyDockWidget::switchToManualMode() {
     // 切换到手动模式
     mpManualBtn->setEnabled(false);
     mpAutoBtn->setEnabled(true);
+    wsp::FlightManager::getInstance().setManualMode(true);
     logMessage("Switched to manual mode", Qgis::MessageLevel::Info);
 }
 
@@ -321,5 +328,6 @@ void JoyDockWidget::switchToAutoMode() {
     // 切换到自动模式
     mpManualBtn->setEnabled(true);
     mpAutoBtn->setEnabled(false);
+    wsp::FlightManager::getInstance().setManualMode(false);
     logMessage("Switched to auto mode", Qgis::MessageLevel::Info);
 }

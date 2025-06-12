@@ -53,6 +53,8 @@ public:
     void keyReleaseEvent(QKeyEvent* event);
     bool isKeyPressed(int key) const;
     void updateCameraMovement();
+    bool isEditing() const {return isEditMode;}
+    void setEditing(bool editing) {isEditMode = editing;}
 
 private:
     CanvasType mCurrentCanvas;
@@ -61,6 +63,7 @@ private:
     Bounds mBounds;
     QMap<int, bool> mKeyStates;
     QTimer* mUpdateTimer;
+    bool isEditMode;
     void update3DCameraMovement();
     void update2DCameraMovement();
 };
@@ -155,6 +158,8 @@ public:
     QVector3D getPosition() const {return mAircraftPosition;}
     void setMaxAltitude(double alititude) {mMaxAlititude = alititude;}
     double getMaxAltitude() const {return mMaxAlititude;}
+    void setManualMode(bool manual);
+    bool isManualMode() const {return mManualMode;}
     //void generateFlightRoute(float height);
     static constexpr int minFlightSpeed = 1;
     static constexpr int maxFlightSpeed = 50;
@@ -170,6 +175,7 @@ public slots:
 private:
     double mFlightSpeed,mFlightBattery;
     double mBaseHeight, mMaxAlititude;
+    bool mManualMode;
     QVector3D mAircraftPosition;
     QQuaternion mAircraftOrientation;
     QVector<QVector3D> mFlightPath;
@@ -191,8 +197,10 @@ public:
     AnimationManager& operator=(const AnimationManager&) = delete;
     void setAnimationSpeed(double speed) {mAnimationSpeed = speed;}
     double getAnimationSpeed() const {return mAnimationSpeed;}
-    void setAnimationDirection(QVector3D direction) {mAnimationDirection = direction;}
-    QVector3D getAnimationDirection() const {return mAnimationDirection;}
+    bool isAnimating() const {return mIsAnimating;}
+    float mAnimationProgress;
+    int currentPathIndex;
+    QVector<QVector3D> mPath;
 
 public slots:
     void startSimulation();
@@ -203,12 +211,9 @@ public slots:
 
 private:
     double mAnimationSpeed;
-    QVector3D mAnimationDirection;
-    float mAnimationProgress;
     bool mIsAnimating;
     bool mIsPaused;
     void updateAnimation();
-    void drawAircraft(const QVector3D &position, const QQuaternion &orientation);
     bool mCameraFollowAircraft;
     QVector3D mViewTranslation;
 };

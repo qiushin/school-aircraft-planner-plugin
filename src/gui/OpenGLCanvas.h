@@ -53,6 +53,8 @@ public slots:
 
 signals:
     void refreash3DParms();
+    void submitEdit();
+    void submitPoint(QVector3D point);
 };
 
 class OpenGLScene {
@@ -63,11 +65,12 @@ public:
     void paintScene(const QMatrix4x4 &view, const QMatrix4x4 &projection);
     void loadModel(const QString &objFilePath);
     void cleanupResources();
+    QVector3D getPoint()const{return selectLine->submitPoint();}
 
 protected:
     std::shared_ptr<gl::ModelGroup> modelWidget;
-    std::shared_ptr<gl::BasePlane> basePlaneWidget;
     std::shared_ptr<gl::Drone> droneWidget;
+    std::shared_ptr<gl::SelectLine> selectLine;
     QVector<std::shared_ptr<Route>> routes;
     QOpenGLContext* context;
 };

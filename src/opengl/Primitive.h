@@ -17,6 +17,7 @@
 #include <qvector3d.h>
 
 namespace gl {
+class SelectLine;
 class Primitive : public QObject{
   Q_OBJECT
 
@@ -62,24 +63,47 @@ protected:
 class BasePlane : public ColorPrimitive {
   static constexpr GLfloat DEFAULT_SIZE = 100.0f;
   static constexpr GLfloat DEFAULT_STEP = 2.0f;
-  static constexpr QVector4D DEFAULT_COLOR = QVector4D(0.6f, 0.6f, 0.6f, 0.5f);
+  static constexpr QVector4D DEFAULT_COLOR = QVector4D(0.0f, 0.2f, 0.8f, 0.9f);
 
 public:
-  BasePlane(const QVector4D &color = DEFAULT_COLOR);
+  BasePlane(Bounds bounds = Bounds(), double baseHeight = 0.0, const QVector4D &color = DEFAULT_COLOR);
 };
 
 class RoutePath : public ColorPrimitive {
 public:
   RoutePath(const QVector<QVector3D> &vertices,
             const QVector4D &color = QVector4D(1.0f, 1.0f, 1.0f, 1.0f));
+  const QVector<QVector3D> &getRoutePath() const { return routePath; }
+private:
+  QVector<QVector3D> routePath;
+};
+
+class OrientLine : public ColorPrimitive {
+public:
+  OrientLine(const QVector<QVector3D> &vertices,
+            const QVector4D &color = QVector4D(0.8f, 0.0f, 0.0f, 1.0f));
 };
 
 class SinglePoint : public ColorPrimitive {
+  friend class SelectLine;
 public:
-  SinglePoint(const QVector<QVector3D> &vertices,
+  SinglePoint(const QVector3D &vertices,
             const QVector4D &color = QVector4D(1.0f, 1.0f, 1.0f, 1.0f));
+  QVector3D getPoint() const { return point; }
 private:
   float pointSize;
+  QVector3D point;
+};
+
+class SelectLine{
+public:
+  SelectLine();
+  void draw(const QMatrix4x4 &view, const QMatrix4x4 &projection);
+  QVector3D submitPoint();
+private:
+  std::shared_ptr<OrientLine> orientLine;
+  std::shared_ptr<SinglePoint> orientPoint;
+  QVector<QVector3D> calcOrientLine(float baseHeight);
 };
 
 class ControlPoints : public ColorPrimitive {
@@ -129,6 +153,7 @@ protected:
   void initModelData();
   QVector<GLuint> verticesRange;
   QVector<std::shared_ptr<model::ModelData>> models;
+  std::shared_ptr<BasePlane> basePlaneWidget;
   //QVector<std::shared_ptr<QOpenGLShaderProgram>> shaders;
   //std::shared_ptr<QOpenGLShaderProgram> constructMultiShader(const QString& vertexShaderPath, const QString& fragmentShaderPath);
 };

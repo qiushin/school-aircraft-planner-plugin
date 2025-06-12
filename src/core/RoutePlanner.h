@@ -27,6 +27,7 @@ enum class FlightPattern : unsigned char {
 
 enum class RouteDrawMode : unsigned char {
   AVAILABLE,
+  ADDDING_CONTROL_POINTS,
   CREATING_CONTROL_POINTS,
   CREATING_CONVEX_HULL,
   CREATING_ROUTE_PATH,
@@ -35,9 +36,13 @@ enum class RouteDrawMode : unsigned char {
   EDITING_CONTROL_POINTS,
   EDITING_CONVEX_HULL,
   EDITING_HOME_POINT,
+  PREVIEWING_ROUTE,
 };
 
+class RoutePlanner;
+
 class Route {
+  friend class RoutePlanner;
 public:
   explicit Route(FlightPattern pattern, float turnRadius, float scanSpacing,
                  std::shared_ptr<gl::ControlPoints> controlPoints,
@@ -45,6 +50,8 @@ public:
                  std::shared_ptr<gl::RoutePath> path,
                  std::shared_ptr<gl::SinglePoint> homePoint);
   ~Route() = default;
+
+  void draw(const QMatrix4x4 &view, const QMatrix4x4 &projection);
 
 private:
   FlightPattern mPattern;
@@ -79,18 +86,31 @@ public:
   void setFlightPattern(FlightPattern pattern) { mPattern = pattern; }
   void setTurnRadius(float radius) { mTurnRadius = radius; }
   void setScanSpacing(float spacing) { mScanSpacing = spacing; }
+  RouteDrawMode getDrawMode() const { return mDrawMode; }
   void setDrawMode(RouteDrawMode mode) { mDrawMode = mode; }
+  QVector3D getHomePoint() const { return mRoutes[mRouteIndex]->homePoint->getPoint();}
+  const QVector<QVector3D>& getRoutePath() {return mRoutes[mRouteIndex]->path->getRoutePath();}
+
+  std::shared_ptr<gl::ControlPoints> constructDrawingPoints();
+  void drawRoutes(const QMatrix4x4 &view, const QMatrix4x4 &projection);
+  void cleanRoutes();
+  void setContext(QOpenGLContext* context);
 
 public slots:
   void createRoute();
+  void createControlPoint();
   void editRoute();
+  void addControlPoint(QVector3D point);
 
 private:
   QVector<std::shared_ptr<Route>> mRoutes;
+  QVector<QVector3D> drawingPoint;
   FlightPattern mPattern;
   RouteDrawMode mDrawMode;
+  QOpenGLContext* context;
   float mScanSpacing; // scan line spacing
   float mTurnRadius;  // turn radius
+  int mRouteIndex;
   QVector3D getControlPoint();
 
   void generateRoutePath(const QVector<QVector3D> &controlPointsLocation,
