@@ -12,7 +12,17 @@
 #include <QTreeWidgetItem>
 #include <QVBoxLayout>
 #include <QWidget>
-#include <qwidget.h>
+#include <QMimeData>
+#include <QDrag>
+#include <QDropEvent>
+#include <QStandardItemModel>
+#include <qgsvectorlayer.h>
+#include <qgslayertreeview.h>
+#include <qgslayertreemodel.h>
+#include <qgslayertreelayer.h>
+#include <qgslayertreegroup.h>
+
+#include "../gui/LayerTreeWidget.h"
 // #include <JoyDockWidget.h>
 // #include <qgamepad.h>
 
@@ -29,9 +39,9 @@ class RightDockWidget : public QDockWidget {
 public:
   RightDockWidget(QWidget *parent = nullptr);
   ~RightDockWidget();
-  ToolTreeWidget* getToolTreeWidget() const { return mpToolTreeWidget; }
-  FileTreeWidget* getFileTreeWidget() const { return mpFileTreeWidget; }
-  JoyDockWidget* getJoystickWidget() const { return mJoystickWidget; }
+  ToolTreeWidget *getToolTreeWidget() const { return mpToolTreeWidget; }
+  FileTreeWidget *getFileTreeWidget() const { return mpFileTreeWidget; }
+  JoyDockWidget *getJoystickWidget() const { return mJoystickWidget; }
 
 private:
   QWidget *mpMainContainer;
@@ -135,7 +145,7 @@ signals:
   void queryEnvParams();
 };
 
-class RoutePlanningToolbox : public QTreeWidgetItem {
+class RoutePlanningToolbox : public QTreeWidgetItem{
 public:
   RoutePlanningToolbox(QTreeWidget *parent = nullptr);
   ~RoutePlanningToolbox() = default;
@@ -151,7 +161,7 @@ private:
   QTreeWidgetItem *mpEditRoute;
 };
 
-class SimulationToolbox : public QTreeWidgetItem {
+class SimulationToolbox : public QTreeWidgetItem{
 public:
   SimulationToolbox(QTreeWidget *parent = nullptr);
   ~SimulationToolbox() = default;

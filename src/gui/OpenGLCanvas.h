@@ -50,11 +50,13 @@ private:
 
 public slots:
     void loadModel(const QString &objFilePath);
+    void loadRisk(const QString &shpFilePath);
 
 signals:
     void refreash3DParms();
     void submitEdit();
     void submitPoint(QVector3D point);
+    void setLayerContext(QOpenGLContext* context);
 };
 
 class OpenGLScene {
@@ -64,6 +66,7 @@ public:
 
     void paintScene(const QMatrix4x4 &view, const QMatrix4x4 &projection);
     void loadModel(const QString &objFilePath);
+    void loadRisk(const QString &objFilePath);
     void cleanupResources();
     QVector3D getPoint()const{return selectLine->submitPoint();}
 

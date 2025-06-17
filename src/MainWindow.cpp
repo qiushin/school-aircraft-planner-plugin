@@ -126,8 +126,10 @@ void MainWindow::createSlots() {
           &EnvManager::generateRandomWeather);
   connect(mpMenuBar, &MenuBar::showUserManual, this,
           &MainWindow::showUserManual);
-  connect(mpMenuBar, &MenuBar::projectMenuTriggered, mpCanvas->getOpenGLWidget(),
+  connect(mpMenuBar, &MenuBar::loadModelTriggered, mpCanvas->getOpenGLWidget(),
           &OpenGLCanvas::loadModel);
+  connect(mpMenuBar, &MenuBar::loadRiskTriggered, mpCanvas->getOpenGLWidget(),
+          &OpenGLCanvas::loadRisk);
   connect(mpMenuBar, &MenuBar::viewMenuTriggered, mpCanvas,
           &Canvas::switchTo3D);
   connect(mpMenuBar, &MenuBar::switchTo2D, mpCanvas, &Canvas::switchTo2D);
@@ -153,6 +155,10 @@ void MainWindow::createSlots() {
           &RoutePlanner::getInstance(), &RoutePlanner::createRoute);
   connect(mpCanvas->getOpenGLWidget(), &OpenGLCanvas::submitPoint,
           &RoutePlanner::getInstance(), &RoutePlanner::addControlPoint);
+  connect(mpCanvas->getOpenGLWidget(), &OpenGLCanvas::setLayerContext,
+          LayerTreeWidget::getInstance(), &LayerTreeWidget::setContext);
+  connect(mpCanvas->getOpenGLWidget(), &OpenGLCanvas::setLayerContext,
+          &RoutePlanner::getInstance(), &RoutePlanner::setContext);
   //connect(mpRightDockWidget->getJoystickWidget(), &JoyDockWidget::joystickConnected, mpCanvas->getOpenGLWidget(),&OpenGLCanvas::onJoystickConnected);
 }
 

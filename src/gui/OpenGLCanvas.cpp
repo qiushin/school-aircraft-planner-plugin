@@ -2,6 +2,7 @@
 #include "../core/RoutePlanner.h"
 #include "../core/SharedContextManager.h"
 #include "../log/QgisDebug.h"
+#include "LayerTreeWidget.h"
 #include <QApplication>
 #include <QDebug>
 #include <QFile>
@@ -86,7 +87,7 @@ void OpenGLCanvas::initializeGL() {
   }
 
   mpScene = std::make_unique<OpenGLScene>(context());
-  RoutePlanner::getInstance().setContext(context());
+  emit setLayerContext(context());
   logMessage("OpenGL context initialized", Qgis::MessageLevel::Success);
 }
 
@@ -168,6 +169,7 @@ void OpenGLScene::paintScene(const QMatrix4x4 &view, const QMatrix4x4 &projectio
           droneWidget->draw(view, projection);
       }
     }
+    LayerTreeWidget::getInstance()->drawElements(view, projection);
     RoutePlanner::getInstance().drawRoutes(view, projection);
 }
 
@@ -184,7 +186,17 @@ void OpenGLScene::loadModel(const QString &objFilePath) {
     modelWidget = std::make_shared<gl::ModelGroup>(objFilePath);
 
     Camera::getInstance().setPosition(modelWidget->getBounds().center);
+    LayerTreeWidget::getInstance()->init3Dresources();
 } 
+
+void OpenGLScene::loadRisk(const QString &shpFilePath){
+   logMessage("OpenGLScene::loadRosl", Qgis::MessageLevel::Info);
+    if (!QOpenGLContext::currentContext()) {
+        logMessage("OpenGL context is not current", Qgis::MessageLevel::Critical);
+        return;
+    }
+}
+
 void OpenGLCanvas::mousePressEvent(QMouseEvent *event) {
     mLastMousePos = event->pos();
     if (wsp::WindowManager::getInstance().isEditing()){
@@ -234,5 +246,12 @@ void OpenGLCanvas::loadModel(const QString &objFilePath) {
     logMessage("OpenGLCanvas::loadModel", Qgis::MessageLevel::Info);
     makeCurrent();
     mpScene->loadModel(objFilePath);
+    doneCurrent();
+}
+
+void OpenGLCanvas::loadRisk(const QString &shpFilePath) {
+    logMessage("OpenGLCanvas::loadRisk", Qgis::MessageLevel::Info);
+    makeCurrent();
+    mpScene->loadRisk(shpFilePath);
     doneCurrent();
 }
