@@ -16,6 +16,7 @@
 #include <QDrag>
 #include <QDropEvent>
 #include <QStandardItemModel>
+#include <QSplitter>
 #include <qgsvectorlayer.h>
 #include <qgslayertreeview.h>
 #include <qgslayertreemodel.h>
@@ -32,6 +33,7 @@ class ToolTreeWidget;
 class RoutePlanningToolbox;
 class SimulationToolbox;
 class ParameterToolbox;
+class VideoDisplayWidget;
 
 class RightDockWidget : public QDockWidget {
   Q_OBJECT
@@ -39,16 +41,21 @@ class RightDockWidget : public QDockWidget {
 public:
   RightDockWidget(QWidget *parent = nullptr);
   ~RightDockWidget();
-  ToolTreeWidget *getToolTreeWidget() const { return mpToolTreeWidget; }
-  FileTreeWidget *getFileTreeWidget() const { return mpFileTreeWidget; }
-  JoyDockWidget *getJoystickWidget() const { return mJoystickWidget; }
+  ToolTreeWidget* getToolTreeWidget() const { return mpToolTreeWidget; }
+  FileTreeWidget* getFileTreeWidget() const { return mpFileTreeWidget; }
+  JoyDockWidget* getJoystickWidget() const { return mJoystickWidget; }
+  VideoDisplayWidget* getVideoDisplayWidget() const { return mpVideoDisplayWidget; }
 
 private:
   QWidget *mpMainContainer;
   QVBoxLayout *mpMainLayout;
+  QSplitter *mpMainSplitter;
+  QWidget *mpTopWidget;
+  QVBoxLayout *mpTopLayout;
   JoyDockWidget *mJoystickWidget;
   FileTreeWidget *mpFileTreeWidget;
   ToolTreeWidget *mpToolTreeWidget;
+  VideoDisplayWidget *mpVideoDisplayWidget;
   QScrollArea *mpScrollArea;
   QWidget *mpDockContent;
   void createScrollArea(QWidget *parent);
