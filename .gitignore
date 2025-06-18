@@ -8,8 +8,7 @@
 /python/.idea/
 *.log
 *.d
-*.mp4
-*.wmv
+
 
 # Compiled Object files
 *.slo
