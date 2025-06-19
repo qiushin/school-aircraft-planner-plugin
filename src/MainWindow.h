@@ -10,6 +10,8 @@ Date:2025.1.6
 #include "gui/Menu.h"
 #include "gui/LeftDockWidget.h"
 #include "gui/RightDockWidget.h"
+#include "gui/RiskEventPlannerDialog.h"
+#include "gui/RouteVisualization.h"
 #include "log/QgisDebug.h"
 #include <QAction>
 #include <QApplication>
@@ -39,10 +41,16 @@ private:
   MenuBar *mpMenuBar;
   LeftDockWidget *mpLeftDockWidget;
   RightDockWidget *mpRightDockWidget;
+  RiskEventPlannerDialog *mpRiskEventPlannerDialog;
+  RouteVisualization *mpRouteVisualization;
   QSize setWindowSize(QRect screenGeometry, int maxWidth, int maxHeight, int minWidth, int minHeight);
   void initWindowStatus();
   void showUserManual();
   void createSlots();
+
+private slots:
+  void showRiskEventPlannerDialog();
+  void onRiskEventPlanningResults(const PlanningResult& result);
 };
 
 #endif // MAINWINDOW_H

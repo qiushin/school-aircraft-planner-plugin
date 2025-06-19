@@ -27,6 +27,7 @@ private:
 private slots:
   void onLoadModel();
   void onLoadRisk();
+  void onRiskEventPlannerDialog();
 
 signals:
   void loadModelTriggered(const QString &filePath);
@@ -48,5 +49,6 @@ signals:
   void setFlightParams();
   void refreshEnvironmentalParams();
   void showUserManual();
+  void riskEventPlannerDialogTriggered();
 };
 #endif

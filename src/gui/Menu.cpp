@@ -21,6 +21,11 @@ void MenuBar::onLoadRisk() {
   }
 }
 
+void MenuBar::onRiskEventPlannerDialog() {
+  logMessage("point route planner dialog triggered", Qgis::MessageLevel::Info);
+  emit riskEventPlannerDialogTriggered();
+}
+
 QMenu *MenuBar::createProjectMenu(QWidget *parent) {
   QMenu *projectMenu = new QMenu(tr("Project"), parent);
   QAction *loadModel = projectMenu->addAction(tr("load 3D file"));
@@ -68,6 +73,9 @@ QMenu *MenuBar::createRouteMenu(QWidget *parent) {
   QMenu *routeMenu = new QMenu(tr("Route Planning"), parent);
   QAction *createRouteAction = routeMenu->addAction(tr("Create route"));
   connect(createRouteAction, &QAction::triggered, this, &MenuBar::createRoute);
+  
+  QAction *riskEventPlannerAction = routeMenu->addAction(tr("generate point event risk patrol route"));
+  connect(riskEventPlannerAction, &QAction::triggered, this, &MenuBar::onRiskEventPlannerDialog);
 
   logMessage("create route planning menu", Qgis::MessageLevel::Success);
 

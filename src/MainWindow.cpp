@@ -54,6 +54,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     return;
   }
 
+  // 初始化风险事件路径规划对话框
+  mpRiskEventPlannerDialog = nullptr; // 延迟创建
+  
+  // 初始化路径可视化
+  mpRouteVisualization = new RouteVisualization(this);
+  logMessage("create route visualization", Qgis::MessageLevel::Info);
+
   createSlots();
   
   // 初始化视频管理器
@@ -83,6 +90,8 @@ void MainWindow::release() {
   delete mpLeftDockWidget;
   delete mpRightDockWidget;
   delete mpMenuBar;
+  delete mpRiskEventPlannerDialog;
+  delete mpRouteVisualization;
   logMessage("MainWindow released", Qgis::MessageLevel::Success);
 }
 
@@ -189,6 +198,10 @@ void MainWindow::createSlots() {
   connect(mpCanvas->getOpenGLWidget(), &OpenGLCanvas::setLayerContext,
           &RoutePlanner::getInstance(), &RoutePlanner::setContext);
   //connect(mpRightDockWidget->getJoystickWidget(), &JoyDockWidget::joystickConnected, mpCanvas->getOpenGLWidget(),&OpenGLCanvas::onJoystickConnected);
+  
+  // 连接风险事件路径规划信号
+  connect(mpMenuBar, &MenuBar::riskEventPlannerDialogTriggered, this,
+          &MainWindow::showRiskEventPlannerDialog);
 }
 
 QSize MainWindow::setWindowSize(QRect screenGeometry, int maxWidth,
@@ -260,4 +273,44 @@ void MainWindow::showUserManual() {
 
   manualDialog->exec();
   logMessage("show user manual", Qgis::MessageLevel::Success);
+}
+
+void MainWindow::showRiskEventPlannerDialog() {
+  logMessage("show risk event path planner dialog", Qgis::MessageLevel::Info);
+  
+  // 延迟创建对话框
+  if (!mpRiskEventPlannerDialog) {
+    mpRiskEventPlannerDialog = new RiskEventPlannerDialog(this);
+    
+    // 连接对话框的信号
+    connect(mpRiskEventPlannerDialog, &RiskEventPlannerDialog::showResults,
+            this, &MainWindow::onRiskEventPlanningResults);
+  }
+  
+  // 显示对话框
+  mpRiskEventPlannerDialog->show();
+  mpRiskEventPlannerDialog->raise();
+  mpRiskEventPlannerDialog->activateWindow();
+}
+
+void MainWindow::onRiskEventPlanningResults(const PlanningResult& result) {
+  logMessage("received risk event path planning results", Qgis::MessageLevel::Info);
+  
+  if (!result.success) {
+    logMessage(QString("planning failed: %1").arg(result.errorMessage), 
+               Qgis::MessageLevel::Critical);
+    return;
+  }
+  
+  // 更新路径可视化
+  if (mpRouteVisualization) {
+    mpRouteVisualization->setPlanningResult(result);
+    
+    // 这里可以将结果传递给Canvas进行显示
+    // 由于Canvas可能需要修改来支持2D路径显示，这里只是记录日志
+    logMessage(QString("path planning results updated - total length: %1 meters, risk points count: %2")
+               .arg(result.totalPathLength, 0, 'f', 2)
+               .arg(result.riskEventCount), 
+               Qgis::MessageLevel::Success);
+  }
 }
