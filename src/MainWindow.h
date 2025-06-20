@@ -55,6 +55,7 @@ private slots:
   void showGridPathPlannerDialog();
   void onRiskEventPlanningResults(const PlanningResult& result);
   void onGridPathPlanningResults(const GridPlanningResult& result);
+  void onAreaPlanningResults(const AreaPlanningResult& result);
 };
 
 #endif // MAINWINDOW_H

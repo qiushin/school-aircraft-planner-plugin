@@ -116,6 +116,12 @@ signals:
      */
     void showResults(const GridPlanningResult& result);
 
+    /**
+     * @brief 显示面事件规划结果信号
+     * @param result 面事件规划结果
+     */
+    void showAreaResults(const AreaPlanningResult& result);
+
 private slots:
     /**
      * @brief 浏览渔网线文件

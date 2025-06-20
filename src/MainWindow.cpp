@@ -331,6 +331,8 @@ void MainWindow::showGridPathPlannerDialog() {
     // 连接对话框的信号
     connect(mpGridPathPlannerDialog, &GridPathPlannerDialog::showResults,
             this, &MainWindow::onGridPathPlanningResults);
+    connect(mpGridPathPlannerDialog, &GridPathPlannerDialog::showAreaResults,
+            this, &MainWindow::onAreaPlanningResults);
   }
   
   // 显示对话框
@@ -357,4 +359,38 @@ void MainWindow::onGridPathPlanningResults(const GridPlanningResult& result) {
              
   // 这里可以将结果传递给Canvas进行3D显示
   // 由于Canvas可能需要修改来支持网格路径显示，暂时只记录日志
+}
+
+void MainWindow::onAreaPlanningResults(const AreaPlanningResult& result) {
+  logMessage("received area path planning results", Qgis::MessageLevel::Info);
+  
+  if (!result.success) {
+    logMessage(QString("area planning failed: %1").arg(result.errorMessage), 
+               Qgis::MessageLevel::Critical);
+    return;
+  }
+  
+  // 处理面事件路径规划结果
+  logMessage(QString("area path planning results updated - total length: %1 meters, coverage: %2% (%3/%4 nodes)")
+             .arg(result.totalPathLength, 0, 'f', 2)
+             .arg(result.coverageRate * 100.0, 0, 'f', 1)
+             .arg(result.coveredGridCells)
+             .arg(result.totalGridCells), 
+             Qgis::MessageLevel::Success);
+             
+  // 输出网格节点信息以进行调试
+  logMessage(QString("area planning grid nodes: %1 total nodes").arg(result.gridNodes.size()), 
+             Qgis::MessageLevel::Info);
+             
+  // 显示一些网格节点的坐标信息
+  for (int i = 0; i < qMin(5, result.gridNodes.size()); ++i) {
+    const GridNode& node = result.gridNodes[i];
+    logMessage(QString("node %1: position(%2, %3, %4), neighbors: %5")
+               .arg(node.id)
+               .arg(node.position.x(), 0, 'f', 2)
+               .arg(node.position.y(), 0, 'f', 2)
+               .arg(node.position.z(), 0, 'f', 2)
+               .arg(node.neighbors.size()), 
+               Qgis::MessageLevel::Info);
+  }
 }

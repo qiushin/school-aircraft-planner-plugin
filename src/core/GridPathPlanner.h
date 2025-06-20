@@ -199,6 +199,12 @@ public:
     QPair<bool, QString> validateParameters(const GridPlanningParameters& params);
 
     /**
+     * @brief 分析面事件网格的规律性
+     * @return 是否呈现高度规则分布
+     */
+    bool analyzeAreaGridRegularity();
+
+    /**
      * @brief 验证线事件规划参数
      * @param params 线事件规划参数
      * @return 验证结果和错误信息
@@ -310,11 +316,21 @@ signals:
 
 private:
     ShapefileHandler* mShapefileHandler;  // SHP文件处理器
-    QVector<GridNode> mGridNodes;         // 网格节点
-    QVector<QVector3D> mRiskPoints;       // 风险点
-    QVector<RiskLineEvent> mRiskLines;    // 风险线事件
-    QHash<int, int> mNodeIdToIndex;       // 节点ID到索引的映射
-    QVector<QVector<double>> mDistanceMatrix; // 距离矩阵（用于TSP）
+    
+    // 点事件相关数据结构
+    QVector<GridNode> mGridNodes;         // 网格节点（点事件）
+    QVector<QVector3D> mRiskPoints;       // 风险点（点事件）
+    QHash<int, int> mNodeIdToIndex;       // 节点ID到索引的映射（点事件）
+    QVector<QVector<double>> mDistanceMatrix; // 距离矩阵（用于TSP，点事件）
+    
+    // 线事件相关数据结构  
+    QVector<GridNode> mLineGridNodes;     // 网格节点（线事件）
+    QVector<RiskLineEvent> mRiskLines;    // 风险线事件（线事件）
+    QHash<int, int> mLineNodeIdToIndex;   // 节点ID到索引的映射（线事件）
+    
+    // 面事件相关数据结构
+    QVector<GridNode> mAreaGridNodes;     // 网格节点（面事件）
+    QHash<int, int> mAreaNodeIdToIndex;   // 节点ID到索引的映射（面事件）
 
     /**
      * @brief 从渔网线SHP文件构建网格
@@ -542,6 +558,30 @@ private:
      * @return 下一个节点ID
      */
     int findNextGridNode(int currentNodeId, const QSet<int>& visitedNodes);
+
+    // 新增的改进算法辅助函数
+    int findNextSpiralNodeImproved(int currentNodeId, const QSet<int>& visitedNodes, const QSet<int>& availableNodes);
+    int findNextGridNodeImproved(int currentNodeId, const QSet<int>& visitedNodes, const QSet<int>& availableNodes, bool movingRight);
+    int findNearestUnvisitedNode(int currentNodeId, const QSet<int>& visitedNodes, const QSet<int>& availableNodes);
+    void fillMissingNodes(QVector<PathPoint>& coveragePath, QSet<int>& visitedNodes, const QSet<int>& availableNodes, double coverageThreshold);
+    void buildGridStructure();
+    QVector<QVector<int>> organizeNodesIntoRows();
+    
+    // 面事件专用函数
+    bool buildAreaGridFromFishnet(const QString& shapefile);
+    void buildAreaGridConnections();
+    int findNearestAreaGridNode(const QVector3D& position) const;
+    double calculateAreaCoverageRate(const QSet<int>& visitedNodes) const;
+    QVector<QVector3D> findAreaUncoveredAreas(const QSet<int>& visitedNodes) const;
+    
+    // 面事件专用算法辅助函数
+    int findNextAreaSpiralNodeImproved(int currentNodeId, const QSet<int>& visitedNodes, const QSet<int>& availableNodes);
+    int findNextAreaGridNodeImproved(int currentNodeId, const QSet<int>& visitedNodes, const QSet<int>& availableNodes, bool movingRight);
+    int findNearestAreaUnvisitedNode(int currentNodeId, const QSet<int>& visitedNodes, const QSet<int>& availableNodes);
+    void fillAreaMissingNodes(QVector<PathPoint>& coveragePath, QSet<int>& visitedNodes, const QSet<int>& availableNodes, double coverageThreshold);
+    void buildAreaGridStructure();
+    QVector<QVector<int>> organizeAreaNodesIntoRows();
+    bool isAreaNodeReachable(int fromNodeId, int toNodeId, const QSet<int>& visitedNodes);
 };
 
 #endif // GRID_PATH_PLANNER_H 

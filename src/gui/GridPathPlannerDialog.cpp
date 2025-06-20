@@ -457,6 +457,9 @@ void GridPathPlannerDialog::previewResults() {
             return;
         }
         
+        // 发出面事件结果显示信号
+        emit showAreaResults(mCurrentAreaResult);
+        
         // 显示面事件规划统计信息
         QString stats = mPlanner->getAreaStatistics(mCurrentAreaResult);
         mResultsText->append("\n=== 面事件规划预览 ===");
