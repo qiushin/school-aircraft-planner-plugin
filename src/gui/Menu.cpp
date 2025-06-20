@@ -26,6 +26,11 @@ void MenuBar::onRiskEventPlannerDialog() {
   emit riskEventPlannerDialogTriggered();
 }
 
+void MenuBar::onGridPathPlannerDialog() {
+  logMessage("grid path planner dialog triggered", Qgis::MessageLevel::Info);
+  emit gridPathPlannerDialogTriggered();
+}
+
 QMenu *MenuBar::createProjectMenu(QWidget *parent) {
   QMenu *projectMenu = new QMenu(tr("Project"), parent);
   QAction *loadModel = projectMenu->addAction(tr("load 3D file"));
@@ -76,6 +81,9 @@ QMenu *MenuBar::createRouteMenu(QWidget *parent) {
   
   QAction *riskEventPlannerAction = routeMenu->addAction(tr("generate point event risk patrol route"));
   connect(riskEventPlannerAction, &QAction::triggered, this, &MenuBar::onRiskEventPlannerDialog);
+  
+  QAction *gridPathPlannerAction = routeMenu->addAction(tr("网格路径规划 (基于渔网线)"));
+  connect(gridPathPlannerAction, &QAction::triggered, this, &MenuBar::onGridPathPlannerDialog);
 
   logMessage("create route planning menu", Qgis::MessageLevel::Success);
 

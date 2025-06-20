@@ -147,6 +147,150 @@ bool ShapefileHandler::loadRiskEventPoints(const QString& filePath) {
     return !mRiskEventPoints.isEmpty();
 }
 
+bool ShapefileHandler::loadFishnetLines(const QString& filePath) {
+    logMessage(QString("attempting to load fishnet lines file: %1").arg(filePath), Qgis::MessageLevel::Info);
+    
+    // 检查文件是否存在
+    QFileInfo fileInfo(filePath);
+    if (!fileInfo.exists()) {
+        logMessage(QString("file not found: %1").arg(filePath), Qgis::MessageLevel::Critical);
+        return false;
+    }
+
+    // 创建矢量图层
+    QgsVectorLayer* layer = new QgsVectorLayer(filePath, "fishnet_lines", "ogr");
+    if (!layer || !layer->isValid()) {
+        QString errorMsg = layer ? layer->error().message() : "failed to create layer";
+        logMessage(QString("cannot load fishnet lines file: %1, error: %2").arg(filePath).arg(errorMsg), Qgis::MessageLevel::Critical);
+        if (layer) delete layer;
+        return false;
+    }
+
+    logMessage(QString("successfully created fishnet layer, feature count: %1").arg(layer->featureCount()), Qgis::MessageLevel::Info);
+
+    // 清除旧数据
+    mFishnetLines.clear();
+
+    // 读取所有要素
+    QgsFeatureIterator features = layer->getFeatures();
+    QgsFeature feature;
+    int featureCount = 0;
+    int processedLines = 0;
+
+    while (features.nextFeature(feature)) {
+        featureCount++;
+        QgsGeometry geometry = feature.geometry();
+        if (geometry.isNull()) {
+            logMessage(QString("Feature %1: geometry is null").arg(featureCount), Qgis::MessageLevel::Warning);
+            continue;
+        }
+
+        // 添加几何类型调试信息（只显示前3个要素）
+        if (featureCount <= 3) {
+            logMessage(QString("Feature %1: geometry type = %2").arg(featureCount).arg(static_cast<int>(geometry.type())), Qgis::MessageLevel::Info);
+            // 显示几何的WKT表示来调试
+            QString wkt = geometry.asWkt();
+            if (wkt.length() > 200) {
+                wkt = wkt.left(200) + "..."; // 截断过长的WKT
+            }
+            logMessage(QString("Feature %1: WKT = %2").arg(featureCount).arg(wkt), Qgis::MessageLevel::Info);
+        }
+
+        // 尝试作为线几何处理
+        try {
+            QgsPolylineXY line = geometry.asPolyline();
+            if (featureCount <= 3) {
+                logMessage(QString("Feature %1: asPolyline succeeded, points = %2").arg(featureCount).arg(line.size()), Qgis::MessageLevel::Info);
+            }
+            if (line.size() >= 2) {
+                // 每两个相邻点之间形成一条线段
+                for (int i = 0; i < line.size() - 1; ++i) {
+                    QVector3D startPoint(line[i].x(), line[i].y(), 0.0);
+                    QVector3D endPoint(line[i+1].x(), line[i+1].y(), 0.0);
+                    mFishnetLines.append(qMakePair(startPoint, endPoint));
+                    processedLines++;
+                }
+                continue; // 成功处理为线，继续下一个要素
+            } else if (featureCount <= 3) {
+                logMessage(QString("Feature %1: line has only %2 points, trying multiline").arg(featureCount).arg(line.size()), Qgis::MessageLevel::Info);
+            }
+        } catch (...) {
+            if (featureCount <= 3) {
+                logMessage(QString("Feature %1: asPolyline failed, trying multiline").arg(featureCount), Qgis::MessageLevel::Info);
+            }
+        }
+        
+        // 尝试作为多线串处理
+        try {
+            QgsMultiPolylineXY multiLine = geometry.asMultiPolyline();
+            if (featureCount <= 3) {
+                logMessage(QString("Feature %1: asMultiPolyline succeeded, lines = %2").arg(featureCount).arg(multiLine.size()), Qgis::MessageLevel::Info);
+            }
+            for (const QgsPolylineXY& line : multiLine) {
+                if (line.size() >= 2) {
+                    for (int i = 0; i < line.size() - 1; ++i) {
+                        QVector3D startPoint(line[i].x(), line[i].y(), 0.0);
+                        QVector3D endPoint(line[i+1].x(), line[i+1].y(), 0.0);
+                        mFishnetLines.append(qMakePair(startPoint, endPoint));
+                        processedLines++;
+                    }
+                }
+            }
+            if (!multiLine.isEmpty()) {
+                continue; // 成功处理为多线串，继续下一个要素
+            }
+        } catch (...) {
+            if (featureCount <= 3) {
+                logMessage(QString("Feature %1: asMultiPolyline failed, trying polygon").arg(featureCount), Qgis::MessageLevel::Info);
+            }
+            // 转换为多线串失败，尝试作为多边形处理
+        }
+        
+        // 尝试作为多边形处理（将边界作为线）
+        try {
+            QgsPolygonXY polygon = geometry.asPolygon();
+            if (featureCount <= 3) {
+                logMessage(QString("Feature %1: asPolygon succeeded, rings = %2").arg(featureCount).arg(polygon.size()), Qgis::MessageLevel::Info);
+            }
+            if (!polygon.isEmpty() && !polygon.first().isEmpty()) {
+                QgsPolylineXY outerRing = polygon.first();
+                if (featureCount <= 3) {
+                    logMessage(QString("Feature %1: polygon outer ring points = %2").arg(featureCount).arg(outerRing.size()), Qgis::MessageLevel::Info);
+                }
+                // 将多边形的每条边作为线段
+                for (int i = 0; i < outerRing.size() - 1; ++i) {
+                    QVector3D startPoint(outerRing[i].x(), outerRing[i].y(), 0.0);
+                    QVector3D endPoint(outerRing[i+1].x(), outerRing[i+1].y(), 0.0);
+                    mFishnetLines.append(qMakePair(startPoint, endPoint));
+                    processedLines++;
+                }
+                continue; // 成功处理为多边形，继续下一个要素
+            } else if (featureCount <= 3) {
+                logMessage(QString("Feature %1: polygon is empty").arg(featureCount), Qgis::MessageLevel::Warning);
+            }
+        } catch (...) {
+            if (featureCount <= 3) {
+                logMessage(QString("Feature %1: asPolygon also failed, skipping").arg(featureCount), Qgis::MessageLevel::Warning);
+            }
+            // 都失败了，跳过这个几何体
+            continue;
+        }
+    }
+
+    delete layer;
+
+    logMessage(QString("successfully processed %1 features and extracted %2 line segments").arg(featureCount).arg(processedLines), 
+               Qgis::MessageLevel::Info);
+    logMessage(QString("successfully loaded %1 fishnet lines").arg(mFishnetLines.size()), 
+               Qgis::MessageLevel::Success);
+    
+    if (mFishnetLines.isEmpty()) {
+        logMessage("Warning: No fishnet lines were extracted from the shapefile", Qgis::MessageLevel::Warning);
+    }
+    
+    return !mFishnetLines.isEmpty();
+}
+
 bool ShapefileHandler::isPointInFlightZone(const QVector3D& point) const {
     QPointF qpoint(point.x(), point.y());
     
@@ -165,6 +309,7 @@ QRectF ShapefileHandler::getFlightZoneBounds() const {
 void ShapefileHandler::clear() {
     mFlightZonePolygons.clear();
     mRiskEventPoints.clear();
+    mFishnetLines.clear();
     mFlightZoneBounds = QRectF();
 }
 

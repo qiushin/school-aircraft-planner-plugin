@@ -42,6 +42,13 @@ public:
     bool loadRiskEventPoints(const QString& filePath);
 
     /**
+     * @brief 加载渔网线数据（线状几何）
+     * @param filePath SHP文件路径
+     * @return 成功返回true，失败返回false
+     */
+    bool loadFishnetLines(const QString& filePath);
+
+    /**
      * @brief 获取可飞行区域多边形
      * @return 可飞行区域多边形点集
      */
@@ -52,6 +59,12 @@ public:
      * @return 风险事件点坐标集合
      */
     const QVector<QVector3D>& getRiskEventPoints() const { return mRiskEventPoints; }
+
+    /**
+     * @brief 获取渔网线集合
+     * @return 渔网线集合，每条线由起点和终点组成
+     */
+    const QVector<QPair<QVector3D, QVector3D>>& getFishnetLines() const { return mFishnetLines; }
 
     /**
      * @brief 检查点是否在可飞行区域内
@@ -74,6 +87,7 @@ public:
 private:
     QVector<QPolygonF> mFlightZonePolygons;  // 可飞行区域多边形集合
     QVector<QVector3D> mRiskEventPoints;     // 风险事件点集合
+    QVector<QPair<QVector3D, QVector3D>> mFishnetLines;  // 渔网线集合
     QRectF mFlightZoneBounds;                // 可飞行区域边界框
 
     /**

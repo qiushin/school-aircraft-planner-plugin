@@ -28,6 +28,7 @@ private slots:
   void onLoadModel();
   void onLoadRisk();
   void onRiskEventPlannerDialog();
+  void onGridPathPlannerDialog();
 
 signals:
   void loadModelTriggered(const QString &filePath);
@@ -50,5 +51,6 @@ signals:
   void refreshEnvironmentalParams();
   void showUserManual();
   void riskEventPlannerDialogTriggered();
+  void gridPathPlannerDialogTriggered();
 };
 #endif

@@ -11,6 +11,7 @@ Date:2025.1.6
 #include "gui/LeftDockWidget.h"
 #include "gui/RightDockWidget.h"
 #include "gui/RiskEventPlannerDialog.h"
+#include "gui/GridPathPlannerDialog.h"
 #include "gui/RouteVisualization.h"
 #include "log/QgisDebug.h"
 #include <QAction>
@@ -42,6 +43,7 @@ private:
   LeftDockWidget *mpLeftDockWidget;
   RightDockWidget *mpRightDockWidget;
   RiskEventPlannerDialog *mpRiskEventPlannerDialog;
+  GridPathPlannerDialog *mpGridPathPlannerDialog;
   RouteVisualization *mpRouteVisualization;
   QSize setWindowSize(QRect screenGeometry, int maxWidth, int maxHeight, int minWidth, int minHeight);
   void initWindowStatus();
@@ -50,7 +52,9 @@ private:
 
 private slots:
   void showRiskEventPlannerDialog();
+  void showGridPathPlannerDialog();
   void onRiskEventPlanningResults(const PlanningResult& result);
+  void onGridPathPlanningResults(const GridPlanningResult& result);
 };
 
 #endif // MAINWINDOW_H

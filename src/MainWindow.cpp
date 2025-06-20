@@ -56,6 +56,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
   // 初始化风险事件路径规划对话框
   mpRiskEventPlannerDialog = nullptr; // 延迟创建
+  mpGridPathPlannerDialog = nullptr; // 延迟创建
   
   // 初始化路径可视化
   mpRouteVisualization = new RouteVisualization(this);
@@ -91,6 +92,7 @@ void MainWindow::release() {
   delete mpRightDockWidget;
   delete mpMenuBar;
   delete mpRiskEventPlannerDialog;
+  delete mpGridPathPlannerDialog;
   delete mpRouteVisualization;
   logMessage("MainWindow released", Qgis::MessageLevel::Success);
 }
@@ -202,6 +204,10 @@ void MainWindow::createSlots() {
   // 连接风险事件路径规划信号
   connect(mpMenuBar, &MenuBar::riskEventPlannerDialogTriggered, this,
           &MainWindow::showRiskEventPlannerDialog);
+  
+  // 连接网格路径规划信号
+  connect(mpMenuBar, &MenuBar::gridPathPlannerDialogTriggered, this,
+          &MainWindow::showGridPathPlannerDialog);
 }
 
 QSize MainWindow::setWindowSize(QRect screenGeometry, int maxWidth,
@@ -313,4 +319,42 @@ void MainWindow::onRiskEventPlanningResults(const PlanningResult& result) {
                .arg(result.riskEventCount), 
                Qgis::MessageLevel::Success);
   }
+}
+
+void MainWindow::showGridPathPlannerDialog() {
+  logMessage("show grid path planner dialog", Qgis::MessageLevel::Info);
+  
+  // 延迟创建对话框
+  if (!mpGridPathPlannerDialog) {
+    mpGridPathPlannerDialog = new GridPathPlannerDialog(this);
+    
+    // 连接对话框的信号
+    connect(mpGridPathPlannerDialog, &GridPathPlannerDialog::showResults,
+            this, &MainWindow::onGridPathPlanningResults);
+  }
+  
+  // 显示对话框
+  mpGridPathPlannerDialog->show();
+  mpGridPathPlannerDialog->raise();
+  mpGridPathPlannerDialog->activateWindow();
+}
+
+void MainWindow::onGridPathPlanningResults(const GridPlanningResult& result) {
+  logMessage("received grid path planning results", Qgis::MessageLevel::Info);
+  
+  if (!result.success) {
+    logMessage(QString("grid planning failed: %1").arg(result.errorMessage), 
+               Qgis::MessageLevel::Critical);
+    return;
+  }
+  
+  // 处理网格路径规划结果
+  logMessage(QString("grid path planning results updated - total length: %1 meters, visited risk points: %2/%3")
+             .arg(result.totalPathLength, 0, 'f', 2)
+             .arg(result.visitedRiskPoints)
+             .arg(result.totalRiskPoints), 
+             Qgis::MessageLevel::Success);
+             
+  // 这里可以将结果传递给Canvas进行3D显示
+  // 由于Canvas可能需要修改来支持网格路径显示，暂时只记录日志
 }
