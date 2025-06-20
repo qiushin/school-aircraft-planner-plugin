@@ -110,7 +110,7 @@ bool ShapefileHandler::loadRiskEventPoints(const QString& filePath) {
     QgsVectorLayer* layer = new QgsVectorLayer(filePath, "risk_points", "ogr");
     if (!layer || !layer->isValid()) {
         QString errorMsg = layer ? layer->error().message() : "failed to create layer";
-        logMessage(QString("cannot load risk event points file: %1, error: %2").arg(filePath).arg(errorMsg), Qgis::MessageLevel::Critical);
+        logMessage(QString("cannot load risk points file: %1, error: %2").arg(filePath).arg(errorMsg), Qgis::MessageLevel::Critical);
         if (layer) delete layer;
         return false;
     }
@@ -123,19 +123,23 @@ bool ShapefileHandler::loadRiskEventPoints(const QString& filePath) {
     // 读取所有要素
     QgsFeatureIterator features = layer->getFeatures();
     QgsFeature feature;
+    int featureCount = 0;
 
     while (features.nextFeature(feature)) {
+        featureCount++;
+        
         QgsGeometry geometry = feature.geometry();
-        if (geometry.isNull()) continue;
+        if (geometry.isNull()) {
+            logMessage(QString("Feature %1: null geometry").arg(featureCount), Qgis::MessageLevel::Warning);
+            continue;
+        }
 
-        // 简单检查是否为点几何 - 尝试转换为点
         try {
             QgsPointXY point = geometry.asPoint();
-            QVector3D vec3d = QVector3D(static_cast<float>(point.x()), 
-                                      static_cast<float>(point.y()), 0.0f);
-            mRiskEventPoints.append(vec3d);
+            QVector3D point3D(point.x(), point.y(), 0.0);
+            mRiskEventPoints.append(point3D);
         } catch (...) {
-            // 如果转换失败，跳过这个几何体
+            logMessage(QString("Feature %1: failed to convert to point").arg(featureCount), Qgis::MessageLevel::Warning);
             continue;
         }
     }
@@ -291,6 +295,94 @@ bool ShapefileHandler::loadFishnetLines(const QString& filePath) {
     return !mFishnetLines.isEmpty();
 }
 
+bool ShapefileHandler::loadRiskLineEvents(const QString& filePath) {
+    logMessage(QString("attempting to load risk line events file: %1").arg(filePath), Qgis::MessageLevel::Info);
+    
+    // 检查文件是否存在
+    QFileInfo fileInfo(filePath);
+    if (!fileInfo.exists()) {
+        logMessage(QString("file not found: %1").arg(filePath), Qgis::MessageLevel::Critical);
+        return false;
+    }
+
+    // 创建矢量图层
+    QgsVectorLayer* layer = new QgsVectorLayer(filePath, "risk_lines", "ogr");
+    if (!layer || !layer->isValid()) {
+        QString errorMsg = layer ? layer->error().message() : "failed to create layer";
+        logMessage(QString("cannot load risk lines file: %1, error: %2").arg(filePath).arg(errorMsg), Qgis::MessageLevel::Critical);
+        if (layer) delete layer;
+        return false;
+    }
+
+    logMessage(QString("successfully created risk lines layer, feature count: %1").arg(layer->featureCount()), Qgis::MessageLevel::Info);
+
+    // 清除旧数据
+    mRiskLineEvents.clear();
+
+    // 读取所有要素
+    QgsFeatureIterator features = layer->getFeatures();
+    QgsFeature feature;
+    int featureCount = 0;
+    int processedLines = 0;
+
+    while (features.nextFeature(feature)) {
+        featureCount++;
+        
+        QgsGeometry geometry = feature.geometry();
+        if (geometry.isNull()) {
+            logMessage(QString("Feature %1: null geometry").arg(featureCount), Qgis::MessageLevel::Warning);
+            continue;
+        }
+
+        // 尝试作为单线处理
+        try {
+            QgsPolylineXY line = geometry.asPolyline();
+            if (featureCount <= 3) {
+                logMessage(QString("Feature %1: asPolyline succeeded, points = %2").arg(featureCount).arg(line.size()), Qgis::MessageLevel::Info);
+            }
+            if (line.size() >= 2) {
+                // 取第一个点和最后一个点作为线的起点和终点
+                QVector3D startPoint(line.first().x(), line.first().y(), 0.0);
+                QVector3D endPoint(line.last().x(), line.last().y(), 0.0);
+                mRiskLineEvents.append(qMakePair(startPoint, endPoint));
+                processedLines++;
+                continue;
+            }
+        } catch (...) {
+            if (featureCount <= 3) {
+                logMessage(QString("Feature %1: asPolyline failed, trying multiline").arg(featureCount), Qgis::MessageLevel::Info);
+            }
+        }
+        
+        // 尝试作为多线串处理
+        try {
+            QgsMultiPolylineXY multiLine = geometry.asMultiPolyline();
+            if (featureCount <= 3) {
+                logMessage(QString("Feature %1: asMultiPolyline succeeded, lines = %2").arg(featureCount).arg(multiLine.size()), Qgis::MessageLevel::Info);
+            }
+            for (const QgsPolylineXY& line : multiLine) {
+                if (line.size() >= 2) {
+                    QVector3D startPoint(line.first().x(), line.first().y(), 0.0);
+                    QVector3D endPoint(line.last().x(), line.last().y(), 0.0);
+                    mRiskLineEvents.append(qMakePair(startPoint, endPoint));
+                    processedLines++;
+                }
+            }
+        } catch (...) {
+            logMessage(QString("Feature %1: asMultiPolyline also failed, skipping").arg(featureCount), Qgis::MessageLevel::Warning);
+        }
+    }
+
+    delete layer;
+
+    logMessage(QString("successfully processed %1 features and extracted %2 line events").arg(featureCount).arg(processedLines), 
+               Qgis::MessageLevel::Info);
+    logMessage(QString("successfully loaded %1 risk line events").arg(mRiskLineEvents.size()), 
+               Qgis::MessageLevel::Success);
+    
+    return !mRiskLineEvents.isEmpty();
+}
+
 bool ShapefileHandler::isPointInFlightZone(const QVector3D& point) const {
     QPointF qpoint(point.x(), point.y());
     
@@ -309,6 +401,7 @@ QRectF ShapefileHandler::getFlightZoneBounds() const {
 void ShapefileHandler::clear() {
     mFlightZonePolygons.clear();
     mRiskEventPoints.clear();
+    mRiskLineEvents.clear();
     mFishnetLines.clear();
     mFlightZoneBounds = QRectF();
 }
@@ -389,4 +482,12 @@ QVector3D ShapefileHandler::qgsPointToVector3D(const QgsPoint& point) {
     return QVector3D(static_cast<float>(point.x()), 
                      static_cast<float>(point.y()), 
                      static_cast<float>(point.z()));
+}
+
+QVector<QVector3D> ShapefileHandler::getRiskEventPoints() const {
+    return mRiskEventPoints;
+}
+
+QVector<QPair<QVector3D, QVector3D>> ShapefileHandler::getRiskLineEvents() const {
+    return mRiskLineEvents;
 } 

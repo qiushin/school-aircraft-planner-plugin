@@ -42,6 +42,13 @@ public:
     bool loadRiskEventPoints(const QString& filePath);
 
     /**
+     * @brief 加载风险线事件数据
+     * @param filePath 文件路径
+     * @return 成功返回true
+     */
+    bool loadRiskLineEvents(const QString& filePath);
+
+    /**
      * @brief 加载渔网线数据（线状几何）
      * @param filePath SHP文件路径
      * @return 成功返回true，失败返回false
@@ -55,10 +62,16 @@ public:
     const QVector<QPolygonF>& getFlightZonePolygons() const { return mFlightZonePolygons; }
 
     /**
-     * @brief 获取风险事件点
-     * @return 风险事件点坐标集合
+     * @brief 获取风险事件点列表
+     * @return 风险事件点列表
      */
-    const QVector<QVector3D>& getRiskEventPoints() const { return mRiskEventPoints; }
+    QVector<QVector3D> getRiskEventPoints() const;
+
+    /**
+     * @brief 获取风险线事件列表
+     * @return 风险线事件列表
+     */
+    QVector<QPair<QVector3D, QVector3D>> getRiskLineEvents() const;
 
     /**
      * @brief 获取渔网线集合
@@ -87,7 +100,8 @@ public:
 private:
     QVector<QPolygonF> mFlightZonePolygons;  // 可飞行区域多边形集合
     QVector<QVector3D> mRiskEventPoints;     // 风险事件点集合
-    QVector<QPair<QVector3D, QVector3D>> mFishnetLines;  // 渔网线集合
+    QVector<QPair<QVector3D, QVector3D>> mRiskLineEvents; // 风险线事件（起点-终点对）
+    QVector<QPair<QVector3D, QVector3D>> mFishnetLines;   // 渔网线集合
     QRectF mFlightZoneBounds;                // 可飞行区域边界框
 
     /**

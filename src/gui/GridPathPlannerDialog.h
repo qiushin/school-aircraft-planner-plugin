@@ -37,9 +37,21 @@ public:
 
     /**
      * @brief 获取规划参数
-     * @return 用户设置的规划参数
+     * @return 规划参数
      */
     GridPlanningParameters getPlanningParameters() const;
+
+    /**
+     * @brief 获取线事件规划参数
+     * @return 线事件规划参数
+     */
+    LinePlanningParameters getLinePlanningParameters() const;
+
+    /**
+     * @brief 获取面事件规划参数
+     * @return 面事件规划参数
+     */
+    AreaPlanningParameters getAreaPlanningParameters() const;
 
     /**
      * @brief 设置规划参数
@@ -65,6 +77,18 @@ public slots:
      * @param result 规划结果
      */
     void onPlanningCompleted(const GridPlanningResult& result);
+
+    /**
+     * @brief 处理线事件规划完成
+     * @param result 线事件规划结果
+     */
+    void onLinePlanningCompleted(const LinePlanningResult& result);
+
+    /**
+     * @brief 处理面事件规划完成
+     * @param result 面事件规划结果
+     */
+    void onAreaPlanningCompleted(const AreaPlanningResult& result);
 
     /**
      * @brief 处理规划失败
@@ -104,6 +128,11 @@ private slots:
     void browseRiskPointsFile();
 
     /**
+     * @brief 浏览风险线文件
+     */
+    void browseRiskLinesFile();
+
+    /**
      * @brief 浏览输出目录
      */
     void browseOutputDirectory();
@@ -138,6 +167,11 @@ private slots:
      */
     void onAlgorithmChanged();
 
+    /**
+     * @brief 规划模式改变时的处理
+     */
+    void onPlanningModeChanged();
+
 private:
     // UI组件
     QGroupBox* mInputGroup;              // 输入文件组
@@ -152,16 +186,23 @@ private:
     QPushButton* mFishnetBrowseBtn;      // 浏览渔网线文件按钮
     QLineEdit* mRiskPointsEdit;          // 风险点文件路径
     QPushButton* mRiskPointsBrowseBtn;   // 浏览风险点文件按钮
+    QLineEdit* mRiskLinesEdit;           // 风险线文件路径
+    QPushButton* mRiskLinesBrowseBtn;    // 浏览风险线文件按钮
 
     // 参数设置控件
     QDoubleSpinBox* mStartXSpin;         // 起始点X坐标
     QDoubleSpinBox* mStartYSpin;         // 起始点Y坐标
     QDoubleSpinBox* mStartZSpin;         // 起始点Z坐标
     QDoubleSpinBox* mMaxDistanceSpin;    // 风险点最大关联距离
+    QDoubleSpinBox* mMaxRiskLineDistanceSpin; // 风险线最大关联距离
+    QDoubleSpinBox* mCoverageThresholdSpin; // 覆盖率阈值
+    QSpinBox* mMaxIterationsSpin;        // 最大迭代次数
+    QDoubleSpinBox* mGridSpacingSpin;    // 网格间距
 
     // 算法选择控件
     QComboBox* mAlgorithmCombo;          // 算法选择
     QLabel* mAlgorithmDescLabel;         // 算法描述标签
+    QComboBox* mPlanningModeCombo;       // 规划模式选择（点事件/线事件）
 
     // 输出设置控件
     QLineEdit* mOutputEdit;              // 输出目录路径
@@ -172,12 +213,12 @@ private:
     QLabel* mProgressLabel;              // 进度标签
 
     // 结果显示控件
-    QTextEdit* mResultsText;             // 结果文本显示
+    QTextEdit* mResultsText;             // 结果显示文本
 
     // 操作按钮
     QPushButton* mExecuteBtn;            // 执行规划按钮
-    QPushButton* mExportBtn;             // 导出结果按钮
-    QPushButton* mPreviewBtn;            // 预览结果按钮
+    QPushButton* mExportBtn;             // 导出按钮
+    QPushButton* mPreviewBtn;            // 预览按钮
     QPushButton* mResetBtn;              // 重置按钮
     QPushButton* mCloseBtn;              // 关闭按钮
 
@@ -186,9 +227,11 @@ private:
     QHBoxLayout* mButtonLayout;          // 按钮布局
 
     // 业务逻辑
-    GridPathPlanner* mPlanner;           // 网格路径规划器
-    GridPlanningResult mCurrentResult;   // 当前规划结果
-    bool mPlanningInProgress;            // 是否正在规划中
+    GridPathPlanner* mPlanner;           // 路径规划器
+    bool mPlanningInProgress;            // 规划进行中标志
+    GridPlanningResult mCurrentResult;   // 当前点事件规划结果
+    LinePlanningResult mCurrentLineResult; // 当前线事件规划结果
+    AreaPlanningResult mCurrentAreaResult; // 当前面事件规划结果
 
     /**
      * @brief 初始化UI组件
