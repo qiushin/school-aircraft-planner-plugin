@@ -1,9 +1,4 @@
-/****************************************************************************
-File: GridPathPlanner.cpp
-Author: AI Assistant
-Date: 2025.1.6
-Description: 基于渔网线的无人机避障路径规划器实现
-****************************************************************************/
+
 
 #include "GridPathPlanner.h"
 #include "../log/QgisDebug.h"
@@ -20,19 +15,19 @@ Description: 基于渔网线的无人机避障路径规划器实现
 #include <numeric>
 #include <QTimer>
 
-// A*算法中的节点结构
+
 struct AStarNode {
     int nodeId;
-    double gCost;  // 从起点到当前节点的实际代价
-    double hCost;  // 从当前节点到终点的启发式代价
+    double gCost;  
+    double hCost;  
     double fCost() const { return gCost + hCost; }
-    int parent;    // 父节点ID
+    int parent;    
     
     AStarNode(int id, double g, double h, int p = -1) 
         : nodeId(id), gCost(g), hCost(h), parent(p) {}
         
     bool operator<(const AStarNode& other) const {
-        return fCost() > other.fCost(); // 优先队列是最大堆，我们需要最小堆
+        return fCost() > other.fCost(); 
     }
 };
 
@@ -52,7 +47,7 @@ GridPlanningResult GridPathPlanner::executePlanning(const GridPlanningParameters
     GridPlanningResult result;
     
     try {
-        // 验证参数
+        
         auto validation = validateParameters(params);
         if (!validation.first) {
             result.success = false;
@@ -63,7 +58,7 @@ GridPlanningResult GridPathPlanner::executePlanning(const GridPlanningParameters
         logMessage("Starting grid path planning", Qgis::MessageLevel::Info);
         emit progressUpdated(0, "开始网格路径规划...");
 
-        // 步骤1: 从渔网线加载网格 (0-30%)
+        
         emit progressUpdated(10, "正在加载渔网线数据...");
         if (!buildGridFromFishnet(params.fishnetShapefile)) {
             result.errorMessage = "Failed to load fishnet lines shapefile";
@@ -72,7 +67,7 @@ GridPlanningResult GridPathPlanner::executePlanning(const GridPlanningParameters
         }
         emit progressUpdated(30, QString("渔网线加载完成，共%1个节点").arg(mGridNodes.size()));
 
-        // 步骤2: 加载风险点 (30-50%)
+        
         emit progressUpdated(35, "正在加载风险点数据...");
         if (!loadRiskPoints(params.riskPointsShapefile)) {
             result.errorMessage = "Failed to load risk points";
@@ -81,7 +76,7 @@ GridPlanningResult GridPathPlanner::executePlanning(const GridPlanningParameters
         }
         emit progressUpdated(50, QString("风险点加载完成，共%1个点").arg(mRiskPoints.size()));
 
-        // 步骤3: 关联风险点到网格 (50-60%)
+        
         emit progressUpdated(55, "正在关联风险点到网格...");
         associateRiskPointsToGrid(params.maxRiskPointDistance);
         
@@ -95,7 +90,7 @@ GridPlanningResult GridPathPlanner::executePlanning(const GridPlanningParameters
             return result;
         }
 
-        // 步骤4: 寻找起始节点 (60-65%)
+        
         emit progressUpdated(62, "正在寻找起始节点...");
         logMessage(QString("Looking for start node near point (%1, %2, %3)")
                   .arg(params.startPoint.x(), 0, 'f', 2)
@@ -121,21 +116,21 @@ GridPlanningResult GridPathPlanner::executePlanning(const GridPlanningParameters
         
         emit progressUpdated(65, "起始节点确定");
 
-        // 步骤5: 执行路径规划 (65-95%)
+        
         emit progressUpdated(70, "正在执行路径规划算法...");
         
         if (params.algorithm == "TSP_Dijkstra" || params.algorithm == "TSP_AStar") {
             result.optimalPath = solveTSPWithDijkstra(startNodeId);
             result.algorithm = "TSP with Dijkstra";
         } else if (params.algorithm == "Dijkstra") {
-            // 简单的Dijkstra路径（仅连接最近的风险点）
+            
             if (!riskNodeIds.isEmpty()) {
                 QVector<int> path = dijkstraPath(startNodeId, riskNodeIds.first());
                 result.optimalPath = convertToPathPoints(path);
                 result.algorithm = "Dijkstra";
             }
         } else if (params.algorithm == "AStar") {
-            // 简单的A*路径（仅连接最近的风险点）
+
             if (!riskNodeIds.isEmpty()) {
                 QVector<int> path = aStarPath(startNodeId, riskNodeIds.first());
                 result.optimalPath = convertToPathPoints(path);
@@ -148,7 +143,7 @@ GridPlanningResult GridPathPlanner::executePlanning(const GridPlanningParameters
 
         emit progressUpdated(95, "路径规划完成");
 
-        // 步骤6: 计算统计信息 (95-100%)
+        
         emit progressUpdated(98, "正在计算统计信息...");
         
         result.success = true;
@@ -157,7 +152,7 @@ GridPlanningResult GridPathPlanner::executePlanning(const GridPlanningParameters
         result.visitedRiskPoints = 0;
         result.totalPathLength = 0.0;
         
-        // 计算路径长度和访问的风险点数量
+        
         for (int i = 0; i < result.optimalPath.size(); ++i) {
             if (result.optimalPath[i].isRiskPoint) {
                 result.visitedRiskPoints++;
@@ -193,7 +188,7 @@ GridPlanningResult GridPathPlanner::executePlanning(const GridPlanningParameters
 }
 
 QPair<bool, QString> GridPathPlanner::validateParameters(const GridPlanningParameters& params) {
-    // 检查渔网线文件
+    
     if (params.fishnetShapefile.isEmpty()) {
         return qMakePair(false, QString("Fishnet shapefile path is empty"));
     }
@@ -203,7 +198,7 @@ QPair<bool, QString> GridPathPlanner::validateParameters(const GridPlanningParam
         return qMakePair(false, QString("Fishnet shapefile does not exist: %1").arg(params.fishnetShapefile));
     }
 
-    // 检查风险点文件
+    
     if (params.riskPointsShapefile.isEmpty()) {
         return qMakePair(false, QString("Risk points shapefile path is empty"));
     }
@@ -213,7 +208,7 @@ QPair<bool, QString> GridPathPlanner::validateParameters(const GridPlanningParam
         return qMakePair(false, QString("Risk points shapefile does not exist: %1").arg(params.riskPointsShapefile));
     }
 
-    // 检查输出路径
+    
     if (!params.outputPath.isEmpty()) {
         QDir outputDir(params.outputPath);
         if (!outputDir.exists()) {
@@ -231,13 +226,13 @@ bool GridPathPlanner::buildGridFromFishnet(const QString& shapefile) {
     
     logMessage(QString("Loading fishnet lines from: %1").arg(shapefile), Qgis::MessageLevel::Info);
     
-    // 直接加载渔网线数据
+    
     if (!mShapefileHandler->loadFishnetLines(shapefile)) {
         logMessage("Failed to load fishnet lines shapefile", Qgis::MessageLevel::Critical);
         return false;
     }
     
-    // 从渔网线中提取节点和连接关系
+    
     auto fishnetLines = mShapefileHandler->getFishnetLines();
     
     if (fishnetLines.isEmpty()) {
@@ -246,15 +241,15 @@ bool GridPathPlanner::buildGridFromFishnet(const QString& shapefile) {
     }
     
     int nodeId = 0;
-    QHash<QString, int> positionToNodeId; // 位置字符串到节点ID的映射
-    const double COORD_PRECISION = 0.01; // 1cm精度
+    QHash<QString, int> positionToNodeId; 
+    const double COORD_PRECISION = 0.01; 
     
     logMessage(QString("Processing %1 fishnet lines to extract grid nodes").arg(fishnetLines.size()), 
                Qgis::MessageLevel::Info);
     
-    // 第一遍：提取所有唯一的节点，使用更高精度的位置key
+    
     for (const auto& line : fishnetLines) {
-        // 处理线段起点 - 使用固定精度避免浮点数误差
+        
         double startX = qRound(line.first.x() / COORD_PRECISION) * COORD_PRECISION;
         double startY = qRound(line.first.y() / COORD_PRECISION) * COORD_PRECISION;
         QString startKey = QString("%1,%2").arg(startX, 0, 'f', 2).arg(startY, 0, 'f', 2);
@@ -267,7 +262,7 @@ bool GridPathPlanner::buildGridFromFishnet(const QString& shapefile) {
             nodeId++;
         }
         
-        // 处理线段终点
+        
         double endX = qRound(line.second.x() / COORD_PRECISION) * COORD_PRECISION;
         double endY = qRound(line.second.y() / COORD_PRECISION) * COORD_PRECISION;
         QString endKey = QString("%1,%2").arg(endX, 0, 'f', 2).arg(endY, 0, 'f', 2);
@@ -283,10 +278,10 @@ bool GridPathPlanner::buildGridFromFishnet(const QString& shapefile) {
     
     logMessage(QString("Extracted %1 unique grid nodes").arg(mGridNodes.size()), Qgis::MessageLevel::Info);
     
-    // 第二遍：根据渔网线建立邻接关系
+
     int connectionCount = 0;
     for (const auto& line : fishnetLines) {
-        // 使用相同的精度处理
+        
         double startX = qRound(line.first.x() / COORD_PRECISION) * COORD_PRECISION;
         double startY = qRound(line.first.y() / COORD_PRECISION) * COORD_PRECISION;
         QString startKey = QString("%1,%2").arg(startX, 0, 'f', 2).arg(startY, 0, 'f', 2);
@@ -304,10 +299,10 @@ bool GridPathPlanner::buildGridFromFishnet(const QString& shapefile) {
         int endNodeId = positionToNodeId[endKey];
         
         if (startNodeId == endNodeId) {
-            continue; // 跳过自环
+            continue; 
         }
         
-        // 建立双向连接
+        
         int startIndex = mNodeIdToIndex[startNodeId];
         int endIndex = mNodeIdToIndex[endNodeId];
         
@@ -321,7 +316,7 @@ bool GridPathPlanner::buildGridFromFishnet(const QString& shapefile) {
         }
     }
     
-    // 统计连接信息
+    
     int totalConnections = 0;
     int isolatedNodes = 0;
     int maxConnections = 0;
@@ -332,7 +327,7 @@ bool GridPathPlanner::buildGridFromFishnet(const QString& shapefile) {
         if (connections > maxConnections) maxConnections = connections;
     }
     
-    // 计算网格边界
+    
     if (!mGridNodes.isEmpty()) {
         double minX = mGridNodes[0].position.x(), maxX = mGridNodes[0].position.x();
         double minY = mGridNodes[0].position.y(), maxY = mGridNodes[0].position.y();
@@ -360,7 +355,7 @@ bool GridPathPlanner::buildGridFromFishnet(const QString& shapefile) {
               .arg(isolatedNodes),
               Qgis::MessageLevel::Info);
     
-    // 检查网格连通性
+    
     if (avgConnections < 1.5) {
         logMessage("Warning: Low average connectivity detected, grid may have connectivity issues", 
                   Qgis::MessageLevel::Warning);
@@ -371,7 +366,7 @@ bool GridPathPlanner::buildGridFromFishnet(const QString& shapefile) {
                   Qgis::MessageLevel::Warning);
     }
     
-    // 网格修复：连接距离很近的孤立节点
+    
     if (avgConnections < 2.0) {
         logMessage("Grid connectivity is poor, attempting to repair by connecting nearby nodes...", 
                   Qgis::MessageLevel::Info);
@@ -382,7 +377,7 @@ bool GridPathPlanner::buildGridFromFishnet(const QString& shapefile) {
             logMessage(QString("Grid repair completed: added %1 connections").arg(addedConnections), 
                       Qgis::MessageLevel::Info);
             
-            // 重新计算连通性统计
+            
             totalConnections = 0;
             isolatedNodes = 0;
             maxConnections = 0;
@@ -397,7 +392,7 @@ bool GridPathPlanner::buildGridFromFishnet(const QString& shapefile) {
             
             logMessage(QString("After repair - Grid connectivity: %1 nodes, %2 total connections, avg: %3, max: %4, isolated: %5")
                       .arg(mGridNodes.size())
-                      .arg(totalConnections / 2) // 除以2因为是双向连接
+                      .arg(totalConnections / 2) 
                       .arg(avgConnections, 0, 'f', 1)
                       .arg(maxConnections)
                       .arg(isolatedNodes),
@@ -429,7 +424,7 @@ bool GridPathPlanner::loadRiskPoints(const QString& shapefile) {
 }
 
 void GridPathPlanner::associateRiskPointsToGrid(double maxDistance) {
-    // 重置所有节点的风险点标记
+    
     for (auto& node : mGridNodes) {
         node.isRiskPoint = false;
     }
@@ -441,7 +436,7 @@ void GridPathPlanner::associateRiskPointsToGrid(double maxDistance) {
     logMessage(QString("Starting risk point association: %1 risk points, max distance %2m")
               .arg(mRiskPoints.size()).arg(maxDistance), Qgis::MessageLevel::Info);
     
-    // 显示前3个风险点的详细信息
+    
     for (int riskIdx = 0; riskIdx < mRiskPoints.size(); ++riskIdx) {
         const QVector3D& riskPoint = mRiskPoints[riskIdx];
         
@@ -508,7 +503,7 @@ QVector<int> GridPathPlanner::dijkstraPath(int startNodeId, int endNodeId) {
         return QVector<int>();
     }
     
-    // 使用优先队列优化的Dijkstra算法
+    
     std::priority_queue<std::pair<double, int>, 
                        std::vector<std::pair<double, int>>, 
                        std::greater<>> pq;
@@ -517,7 +512,7 @@ QVector<int> GridPathPlanner::dijkstraPath(int startNodeId, int endNodeId) {
     QHash<int, int> previous;
     QSet<int> visited;
     
-    // 初始化起点
+
     distances[startNodeId] = 0.0;
     pq.push({0.0, startNodeId});
     
@@ -526,16 +521,16 @@ QVector<int> GridPathPlanner::dijkstraPath(int startNodeId, int endNodeId) {
         pq.pop();
         
         if (visited.contains(currentNodeId)) {
-            continue; // 已访问过的节点跳过
+            continue; 
         }
         
         visited.insert(currentNodeId);
         
         if (currentNodeId == endNodeId) {
-            break; // 找到目标节点
+            break; 
         }
         
-        // 更新邻居距离
+        
         int currentIndex = mNodeIdToIndex[currentNodeId];
         const GridNode& currentNode = mGridNodes[currentIndex];
         
@@ -554,7 +549,7 @@ QVector<int> GridPathPlanner::dijkstraPath(int startNodeId, int endNodeId) {
         }
     }
     
-    // 重构路径
+    
     QVector<int> path;
     if (distances.contains(endNodeId)) {
         int current = endNodeId;
@@ -577,7 +572,7 @@ QVector<int> GridPathPlanner::aStarPath(int startNodeId, int endNodeId) {
     QHash<int, double> gScore;
     QHash<int, int> cameFrom;
     
-    // 初始化
+    
     for (const auto& node : mGridNodes) {
         gScore[node.id] = std::numeric_limits<double>::infinity();
     }
@@ -591,7 +586,7 @@ QVector<int> GridPathPlanner::aStarPath(int startNodeId, int endNodeId) {
         openSet.pop();
         
         if (current.nodeId == endNodeId) {
-            // 重构路径
+            
             QVector<int> path;
             int nodeId = endNodeId;
             while (cameFrom.contains(nodeId)) {
@@ -623,7 +618,7 @@ QVector<int> GridPathPlanner::aStarPath(int startNodeId, int endNodeId) {
         }
     }
     
-    return QVector<int>(); // 未找到路径
+    return QVector<int>(); 
 }
 
 QVector<PathPoint> GridPathPlanner::solveTSPWithDijkstra(int startNodeId) {
@@ -637,24 +632,24 @@ QVector<PathPoint> GridPathPlanner::solveTSPWithDijkstra(int startNodeId) {
         return QVector<PathPoint>();
     }
     
-    // 对于大规模问题，使用简化的贪心算法而不是构建完整距离矩阵
+    
     if (riskNodeIds.size() > 100) {
         logMessage(QString("Large TSP problem (%1 points), using optimized greedy algorithm")
                   .arg(riskNodeIds.size()), Qgis::MessageLevel::Info);
         return solveOptimizedGreedyTSP(startNodeId, riskNodeIds);
     }
     
-    // 构建风险点间的距离矩阵
+    
     logMessage("solveTSPWithDijkstra: Building distance matrix...", Qgis::MessageLevel::Info);
     buildRiskPointDistanceMatrix(riskNodeIds);
     
-    // 使用最近邻算法求解TSP
+    
     QVector<int> tspTour = nearestNeighborTSP(startNodeId, riskNodeIds);
     
-    // 使用2-opt改进
+    
     tspTour = twoOptTSP(tspTour, riskNodeIds);
     
-    // 构建完整路径，包括节点间的Dijkstra路径
+    
     QVector<PathPoint> fullPath;
     
     for (int i = 0; i < tspTour.size() - 1; ++i) {
@@ -664,7 +659,7 @@ QVector<PathPoint> GridPathPlanner::solveTSPWithDijkstra(int startNodeId) {
         QVector<int> segmentPath = dijkstraPath(fromNodeId, toNodeId);
         
         for (int j = 0; j < segmentPath.size(); ++j) {
-            if (i > 0 && j == 0) continue; // 避免重复节点
+                    if (i > 0 && j == 0) continue; 
             
             int nodeIndex = mNodeIdToIndex[segmentPath[j]];
             const GridNode& node = mGridNodes[nodeIndex];
@@ -710,7 +705,7 @@ QVector<PathPoint> GridPathPlanner::solveOptimizedGreedyTSP(int startNodeId, con
                   .arg(node.position.y(), 0, 'f', 2)
                   .arg(node.neighbors.size()), Qgis::MessageLevel::Info);
         
-        // 详细显示起点的邻居
+        
         if (node.neighbors.size() > 0) {
             QString neighborsStr = "Start node neighbors: ";
             for (int i = 0; i < qMin(10, node.neighbors.size()); ++i) {
@@ -726,7 +721,7 @@ QVector<PathPoint> GridPathPlanner::solveOptimizedGreedyTSP(int startNodeId, con
         }
     }
     
-    // 调试：检查前几个风险点的连通性
+    
     for (int i = 0; i < qMin(5, riskNodeIds.size()); ++i) {
         int riskNodeId = riskNodeIds[i];
         if (mNodeIdToIndex.contains(riskNodeId)) {
@@ -734,7 +729,7 @@ QVector<PathPoint> GridPathPlanner::solveOptimizedGreedyTSP(int startNodeId, con
             const GridNode& node = mGridNodes[nodeIndex];
             double heuristicDist = heuristicDistance(currentNodeId, riskNodeId);
             
-            // 添加详细的Dijkstra调试
+            
             logMessage(QString("Testing path from start %1 to risk node %2...").arg(currentNodeId).arg(riskNodeId), Qgis::MessageLevel::Info);
             QVector<int> testPath = dijkstraPath(currentNodeId, riskNodeId);
             
@@ -747,7 +742,7 @@ QVector<PathPoint> GridPathPlanner::solveOptimizedGreedyTSP(int startNodeId, con
                       .arg(testPath.isEmpty() ? "NO PATH FOUND" : QString("found %1 steps").arg(testPath.size())), 
                       Qgis::MessageLevel::Info);
             
-            // 显示风险点的邻居
+            
             if (node.neighbors.size() > 0) {
                 QString neighborsStr = QString("Risk node %1 neighbors: ").arg(riskNodeId);
                 for (int j = 0; j < qMin(5, node.neighbors.size()); ++j) {
@@ -762,15 +757,15 @@ QVector<PathPoint> GridPathPlanner::solveOptimizedGreedyTSP(int startNodeId, con
                 logMessage(QString("WARNING: Risk node %1 has NO neighbors!").arg(riskNodeId), Qgis::MessageLevel::Warning);
             }
             
-            // 如果找不到路径，进行连通性分析
+            
             if (testPath.isEmpty()) {
                 logMessage(QString("No path found from %1 to %2, analyzing connectivity...").arg(currentNodeId).arg(riskNodeId), Qgis::MessageLevel::Warning);
                 
-                // 检查起点是否在连通分量中
+                
                 QSet<int> reachableFromStart = getConnectedComponent(currentNodeId);
                 logMessage(QString("Nodes reachable from start: %1").arg(reachableFromStart.size()), Qgis::MessageLevel::Info);
                 
-                // 检查风险点是否在连通分量中
+                
                 QSet<int> reachableFromRisk = getConnectedComponent(riskNodeId);
                 logMessage(QString("Nodes reachable from risk node %1: %2").arg(riskNodeId).arg(reachableFromRisk.size()), Qgis::MessageLevel::Info);
                 
@@ -782,11 +777,11 @@ QVector<PathPoint> GridPathPlanner::solveOptimizedGreedyTSP(int startNodeId, con
         }
     }
     
-    // 进行全局连通性分析
+    
     QVector<QSet<int>> connectedComponents = findConnectedComponents();
     logMessage(QString("Grid has %1 connected components").arg(connectedComponents.size()), Qgis::MessageLevel::Info);
     
-    // 找到起点所在的连通分量
+    
     int startComponentIndex = -1;
     for (int i = 0; i < connectedComponents.size(); ++i) {
         if (connectedComponents[i].contains(startNodeId)) {
@@ -799,7 +794,7 @@ QVector<PathPoint> GridPathPlanner::solveOptimizedGreedyTSP(int startNodeId, con
         logMessage(QString("Start node is in connected component %1 with %2 nodes")
                   .arg(startComponentIndex).arg(connectedComponents[startComponentIndex].size()), Qgis::MessageLevel::Info);
         
-        // 统计风险点在各个连通分量中的分布
+        
         QVector<int> riskPointsPerComponent(connectedComponents.size(), 0);
         int riskPointsInStartComponent = 0;
         
@@ -826,11 +821,11 @@ QVector<PathPoint> GridPathPlanner::solveOptimizedGreedyTSP(int startNodeId, con
             }
         }
         
-        // 如果起点所在的连通分量中没有风险点，这就是问题所在
+
         if (riskPointsInStartComponent == 0) {
             logMessage("CRITICAL ERROR: No risk points are reachable from the start node! The grid may be disconnected or the start point is isolated.", 
                       Qgis::MessageLevel::Critical);
-            return fullPath; // 返回只包含起点的路径
+            return fullPath;    
         }
     }
     
@@ -841,15 +836,15 @@ QVector<PathPoint> GridPathPlanner::solveOptimizedGreedyTSP(int startNodeId, con
         int checkedNodes = 0;
         int pathFoundCount = 0;
         
-        // 只考虑未访问的风险点
+        
         for (int riskNodeId : riskNodeIds) {
             if (visited.contains(riskNodeId)) continue;
             
             checkedNodes++;
             
-            // 使用启发式距离进行初步筛选
+            
             double heuristicDist = heuristicDistance(currentNodeId, riskNodeId);
-            if (heuristicDist > minDistance * 2.0) continue; // 跳过明显较远的点
+            if (heuristicDist > minDistance * 2.0) continue; 
             
             QVector<int> path = dijkstraPath(currentNodeId, riskNodeId);
             if (!path.isEmpty()) {
@@ -880,7 +875,7 @@ QVector<PathPoint> GridPathPlanner::solveOptimizedGreedyTSP(int startNodeId, con
             break;
         }
         
-        // 添加路径到结果（跳过第一个点避免重复）
+        
         for (int j = 1; j < bestPath.size(); ++j) {
             int nodeIndex = mNodeIdToIndex[bestPath[j]];
             const GridNode& node = mGridNodes[nodeIndex];
@@ -899,7 +894,7 @@ QVector<PathPoint> GridPathPlanner::solveOptimizedGreedyTSP(int startNodeId, con
         currentNodeId = nearestNodeId;
         visitedCount++;
         
-        // 每访问10个点输出一次进度
+        
         if (visitedCount % 10 == 0 || visitedCount == totalRiskPoints) {
             logMessage(QString("Progress: visited %1/%2 risk points")
                       .arg(visitedCount).arg(totalRiskPoints), Qgis::MessageLevel::Info);
@@ -912,7 +907,7 @@ QVector<PathPoint> GridPathPlanner::solveOptimizedGreedyTSP(int startNodeId, con
     return fullPath;
 }
 
-// 新增辅助函数：获取从指定节点可达的所有节点（连通分量）
+
 QSet<int> GridPathPlanner::getConnectedComponent(int startNodeId) {
     QSet<int> visited;
     QQueue<int> queue;
@@ -939,7 +934,7 @@ QSet<int> GridPathPlanner::getConnectedComponent(int startNodeId) {
     return visited;
 }
 
-// 新增辅助函数：找到所有连通分量
+
 QVector<QSet<int>> GridPathPlanner::findConnectedComponents() {
     QVector<QSet<int>> components;
     QSet<int> allVisited;
@@ -995,7 +990,7 @@ QVector<int> GridPathPlanner::nearestNeighborTSP(int startNodeId, const QVector<
         currentNodeId = nearestNodeId;
     }
     
-    // 返回起点
+    
     tour.append(startNodeId);
     
     return tour;
@@ -1012,7 +1007,7 @@ QVector<int> GridPathPlanner::twoOptTSP(const QVector<int>& tour, const QVector<
         
         for (int i = 1; i < improvedTour.size() - 2; ++i) {
             for (int j = i + 1; j < improvedTour.size() - 1; ++j) {
-                // 计算当前边的总长度
+                
                 double currentLength = 0.0;
                 QVector<int> path1 = dijkstraPath(improvedTour[i], improvedTour[i + 1]);
                 QVector<int> path2 = dijkstraPath(improvedTour[j], improvedTour[j + 1]);
@@ -1029,7 +1024,7 @@ QVector<int> GridPathPlanner::twoOptTSP(const QVector<int>& tour, const QVector<
                     currentLength += calculateDistance(mGridNodes[idx1].position, mGridNodes[idx2].position);
                 }
                 
-                // 计算交换后边的总长度
+                
                 double newLength = 0.0;
                 QVector<int> newPath1 = dijkstraPath(improvedTour[i], improvedTour[j]);
                 QVector<int> newPath2 = dijkstraPath(improvedTour[i + 1], improvedTour[j + 1]);
@@ -1047,7 +1042,7 @@ QVector<int> GridPathPlanner::twoOptTSP(const QVector<int>& tour, const QVector<
                 }
                 
                 if (newLength < currentLength) {
-                    // 执行2-opt交换
+
                     std::reverse(improvedTour.begin() + i + 1, improvedTour.begin() + j + 1);
                     improved = true;
                 }
@@ -1066,12 +1061,12 @@ void GridPathPlanner::buildRiskPointDistanceMatrix(const QVector<int>& riskNodeI
     logMessage(QString("Building distance matrix for %1 risk points...").arg(size), 
               Qgis::MessageLevel::Info);
     
-    int totalCalculations = size * (size - 1) / 2; // 只计算上三角矩阵
+    int totalCalculations = size * (size - 1) / 2; 
     int completed = 0;
     
     for (int i = 0; i < size; ++i) {
         mDistanceMatrix[i].resize(size);
-        mDistanceMatrix[i][i] = 0.0; // 对角线为0
+        mDistanceMatrix[i][i] = 0.0; 
         
         for (int j = i + 1; j < size; ++j) {
             QVector<int> path = dijkstraPath(riskNodeIds[i], riskNodeIds[j]);
@@ -1085,16 +1080,16 @@ void GridPathPlanner::buildRiskPointDistanceMatrix(const QVector<int>& riskNodeI
                                                   mGridNodes[nodeIndex2].position);
                 }
             } else {
-                // 如果找不到路径，使用启发式距离
+                
                 pathLength = heuristicDistance(riskNodeIds[i], riskNodeIds[j]) * 1.5;
             }
             
             mDistanceMatrix[i][j] = pathLength;
-            mDistanceMatrix[j][i] = pathLength; // 对称矩阵
+            mDistanceMatrix[j][i] = pathLength; 
             
             completed++;
             
-            // 每完成10%输出进度
+            
             if (completed % (totalCalculations / 10) == 0) {
                 int percentage = (completed * 100) / totalCalculations;
                 logMessage(QString("Distance matrix progress: %1% (%2/%3)")
@@ -1185,7 +1180,7 @@ bool GridPathPlanner::exportPathToFiles(const GridPlanningResult& result, const 
         outputDir.mkpath(".");
     }
     
-    // 导出路径为CSV
+    
     QString csvPath = outputDir.filePath("grid_path.csv");
     QFile csvFile(csvPath);
     
@@ -1211,7 +1206,7 @@ bool GridPathPlanner::exportPathToFiles(const GridPlanningResult& result, const 
         logMessage(QString("Path exported to CSV: %1").arg(csvPath), Qgis::MessageLevel::Success);
     }
     
-    // 导出路径为WKT
+    
     QString wktPath = outputDir.filePath("grid_path.wkt");
     QFile wktFile(wktPath);
     
@@ -1233,7 +1228,7 @@ bool GridPathPlanner::exportPathToFiles(const GridPlanningResult& result, const 
         logMessage(QString("Path exported to WKT: %1").arg(wktPath), Qgis::MessageLevel::Success);
     }
     
-    // 导出统计报告
+    
     QString statsPath = outputDir.filePath("grid_path_statistics.txt");
     QFile statsFile(statsPath);
     
@@ -1281,7 +1276,7 @@ QString GridPathPlanner::getStatistics(const GridPlanningResult& result) const {
 
 void GridPathPlanner::asyncExecutePlanning(const GridPlanningParameters& params) {
     GridPlanningResult result = executePlanning(params);
-    // 信号已在executePlanning中发出
+    
 }
 
 void GridPathPlanner::clear() {
@@ -1293,24 +1288,24 @@ void GridPathPlanner::clear() {
 }
 
 int GridPathPlanner::repairGridConnectivity() {
-    const double MAX_CONNECTION_DISTANCE = 10.0; // 最大连接距离（米）
-    const int MAX_CONNECTIONS_PER_NODE = 8; // 每个节点最多连接数
+    const double MAX_CONNECTION_DISTANCE = 10.0; 
+    const int MAX_CONNECTIONS_PER_NODE = 8; 
     
     int addedConnections = 0;
     
     logMessage(QString("Attempting to repair grid connectivity with max distance %1m")
               .arg(MAX_CONNECTION_DISTANCE), Qgis::MessageLevel::Info);
     
-    // 为每个节点寻找附近的节点进行连接
+
     for (int i = 0; i < mGridNodes.size(); ++i) {
         GridNode& node1 = mGridNodes[i];
         
-        // 跳过已有足够连接的节点
+        
         if (node1.neighbors.size() >= MAX_CONNECTIONS_PER_NODE) {
             continue;
         }
         
-        // 寻找距离最近的节点
+        
         QVector<QPair<double, int>> nearbyNodes;
         
         for (int j = 0; j < mGridNodes.size(); ++j) {
@@ -1320,17 +1315,17 @@ int GridPathPlanner::repairGridConnectivity() {
             double distance = calculateDistance(node1.position, node2.position);
             
             if (distance <= MAX_CONNECTION_DISTANCE) {
-                // 检查是否已经连接
+                
                 if (!node1.neighbors.contains(node2.id)) {
                     nearbyNodes.append(qMakePair(distance, j));
                 }
             }
         }
         
-        // 按距离排序
+        
         std::sort(nearbyNodes.begin(), nearbyNodes.end());
         
-        // 连接最近的几个节点
+        
         int connectionsToAdd = qMin(MAX_CONNECTIONS_PER_NODE - node1.neighbors.size(), 
                                    nearbyNodes.size());
         
@@ -1338,17 +1333,17 @@ int GridPathPlanner::repairGridConnectivity() {
             int j = nearbyNodes[k].second;
             GridNode& node2 = mGridNodes[j];
             
-            // 检查node2是否还能接受更多连接
+            
             if (node2.neighbors.size() >= MAX_CONNECTIONS_PER_NODE) {
                 continue;
             }
             
-            // 建立双向连接
+            
             node1.neighbors.append(node2.id);
             node2.neighbors.append(node1.id);
             addedConnections++;
             
-            if (addedConnections <= 10) { // 只显示前10个连接的详细信息
+            if (addedConnections <= 10) { 
                 logMessage(QString("Connected nodes %1 and %2 (distance: %3m)")
                           .arg(node1.id).arg(node2.id).arg(nearbyNodes[k].first, 0, 'f', 2), 
                           Qgis::MessageLevel::Info);
@@ -1400,7 +1395,7 @@ void GridPathPlanner::associateRiskLinesToGrid(double maxDistance) {
                       Qgis::MessageLevel::Info);
         }
         
-        // 为风险线寻找网格路径
+        
         QVector<int> gridPath = findGridPathForLine(riskLine);
         
         if (!gridPath.isEmpty()) {
@@ -1425,7 +1420,7 @@ void GridPathPlanner::associateRiskLinesToGrid(double maxDistance) {
 }
 
 QVector<int> GridPathPlanner::findGridPathForLine(const RiskLineEvent& riskLine) {
-    // 找到线的起点和终点最近的网格节点
+    
     int startNodeId = findNearestGridNode(riskLine.startPoint);
     int endNodeId = findNearestGridNode(riskLine.endPoint);
     
@@ -1433,7 +1428,7 @@ QVector<int> GridPathPlanner::findGridPathForLine(const RiskLineEvent& riskLine)
         return QVector<int>();
     }
     
-    // 使用Dijkstra算法找到从起点到终点的路径
+    
     QVector<int> path = dijkstraPath(startNodeId, endNodeId);
     
     if (path.isEmpty()) {
@@ -1451,7 +1446,7 @@ QVector<PathPoint> GridPathPlanner::solveLineTSP(int startNodeId) {
     QVector<PathPoint> fullPath;
     QSet<int> completedLines;
     
-    // 添加起始点
+
     if (mNodeIdToIndex.contains(startNodeId)) {
         int nodeIndex = mNodeIdToIndex[startNodeId];
         const GridNode& node = mGridNodes[nodeIndex];
@@ -1467,14 +1462,14 @@ QVector<PathPoint> GridPathPlanner::solveLineTSP(int startNodeId) {
         double minDistance = std::numeric_limits<double>::infinity();
         QVector<int> bestPath;
         
-        // 寻找距离当前节点最近且未完成的风险线
+        
         for (int i = 0; i < mRiskLines.size(); ++i) {
             if (completedLines.contains(i)) continue;
             
             const RiskLineEvent& riskLine = mRiskLines[i];
             if (riskLine.gridNodeIds.isEmpty()) continue;
             
-            // 计算到风险线起点的距离
+            
             int lineStartNodeId = riskLine.gridNodeIds.first();
             QVector<int> pathToLine = dijkstraPath(currentNodeId, lineStartNodeId);
             
@@ -1500,7 +1495,7 @@ QVector<PathPoint> GridPathPlanner::solveLineTSP(int startNodeId) {
             break;
         }
         
-        // 添加路径到风险线起点
+        
         for (int j = 1; j < bestPath.size(); ++j) {
             int nodeIndex = mNodeIdToIndex[bestPath[j]];
             const GridNode& node = mGridNodes[nodeIndex];
@@ -1508,22 +1503,22 @@ QVector<PathPoint> GridPathPlanner::solveLineTSP(int startNodeId) {
             fullPath.append(pathPoint);
         }
         
-        // 添加风险线的完整路径
+        
         const RiskLineEvent& selectedLine = mRiskLines[bestLineIndex];
         for (int j = 0; j < selectedLine.gridNodeIds.size(); ++j) {
             int nodeIndex = mNodeIdToIndex[selectedLine.gridNodeIds[j]];
             const GridNode& node = mGridNodes[nodeIndex];
             PathPoint pathPoint(node.position);
-            pathPoint.isRiskPoint = true; // 标记为风险线路径点
+            pathPoint.isRiskPoint = true; 
             fullPath.append(pathPoint);
         }
         
-        // 更新当前节点为风险线的终点
+        
         currentNodeId = selectedLine.gridNodeIds.last();
         completedLines.insert(bestLineIndex);
         completedCount++;
         
-        // 标记风险线为已完成
+        
         mRiskLines[bestLineIndex].isCompleted = true;
         
         logMessage(QString("Completed risk line %1/%2: line ID %3")
@@ -1543,7 +1538,7 @@ QVector<PathPoint> GridPathPlanner::solveOptimizedLineGreedy(int startNodeId, co
     QVector<PathPoint> fullPath;
     QSet<int> completedLines;
     
-    // 添加起始点
+    
     if (mNodeIdToIndex.contains(startNodeId)) {
         int nodeIndex = mNodeIdToIndex[startNodeId];
         const GridNode& node = mGridNodes[nodeIndex];
@@ -1560,14 +1555,14 @@ QVector<PathPoint> GridPathPlanner::solveOptimizedLineGreedy(int startNodeId, co
         QVector<int> bestPathToLine;
         QVector<int> bestLinePath;
         
-        // 寻找总距离最短的风险线
+        
         for (int i = 0; i < riskLines.size(); ++i) {
             if (completedLines.contains(i)) continue;
             
             const RiskLineEvent& riskLine = riskLines[i];
             if (riskLine.gridNodeIds.isEmpty()) continue;
             
-            // 计算到风险线起点的距离
+            
             int lineStartNodeId = riskLine.gridNodeIds.first();
             QVector<int> pathToLine = dijkstraPath(currentNodeId, lineStartNodeId);
             
@@ -1580,7 +1575,7 @@ QVector<PathPoint> GridPathPlanner::solveOptimizedLineGreedy(int startNodeId, co
                                                       mGridNodes[nodeIndex2].position);
                 }
                 
-                // 计算风险线本身的长度
+
                 double lineLength = 0.0;
                 for (int j = 0; j < riskLine.gridNodeIds.size() - 1; ++j) {
                     int nodeIndex1 = mNodeIdToIndex[riskLine.gridNodeIds[j]];
@@ -1605,7 +1600,7 @@ QVector<PathPoint> GridPathPlanner::solveOptimizedLineGreedy(int startNodeId, co
             break;
         }
         
-        // 添加路径到风险线起点
+        
         for (int j = 1; j < bestPathToLine.size(); ++j) {
             int nodeIndex = mNodeIdToIndex[bestPathToLine[j]];
             const GridNode& node = mGridNodes[nodeIndex];
@@ -1613,21 +1608,21 @@ QVector<PathPoint> GridPathPlanner::solveOptimizedLineGreedy(int startNodeId, co
             fullPath.append(pathPoint);
         }
         
-        // 添加风险线的完整路径
+        
         for (int j = 0; j < bestLinePath.size(); ++j) {
             int nodeIndex = mNodeIdToIndex[bestLinePath[j]];
             const GridNode& node = mGridNodes[nodeIndex];
             PathPoint pathPoint(node.position);
-            pathPoint.isRiskPoint = true; // 标记为风险线路径点
+            pathPoint.isRiskPoint = true; 
             fullPath.append(pathPoint);
         }
         
-        // 更新当前节点为风险线的终点
+        
         currentNodeId = bestLinePath.last();
         completedLines.insert(bestLineIndex);
         completedCount++;
         
-        // 标记风险线为已完成
+        
         mRiskLines[bestLineIndex].isCompleted = true;
         
         logMessage(QString("Completed risk line %1/%2: line ID %3, total distance: %4m")
@@ -1642,7 +1637,7 @@ QVector<PathPoint> GridPathPlanner::solveOptimizedLineGreedy(int startNodeId, co
 }
 
 QPair<bool, QString> GridPathPlanner::validateLineParameters(const LinePlanningParameters& params) {
-    // 检查渔网线文件
+    
     if (params.fishnetShapefile.isEmpty()) {
         return qMakePair(false, QString("Fishnet shapefile path is empty"));
     }
@@ -1652,7 +1647,7 @@ QPair<bool, QString> GridPathPlanner::validateLineParameters(const LinePlanningP
         return qMakePair(false, QString("Fishnet shapefile does not exist: %1").arg(params.fishnetShapefile));
     }
 
-    // 检查风险线文件
+    
     if (params.riskLinesShapefile.isEmpty()) {
         return qMakePair(false, QString("Risk lines shapefile path is empty"));
     }
@@ -1662,7 +1657,7 @@ QPair<bool, QString> GridPathPlanner::validateLineParameters(const LinePlanningP
         return qMakePair(false, QString("Risk lines shapefile does not exist: %1").arg(params.riskLinesShapefile));
     }
 
-    // 检查输出路径
+    
     if (!params.outputPath.isEmpty()) {
         QDir outputDir(params.outputPath);
         if (!outputDir.exists()) {
@@ -1676,7 +1671,7 @@ QPair<bool, QString> GridPathPlanner::validateLineParameters(const LinePlanningP
 }
 
 QPair<bool, QString> GridPathPlanner::validateAreaParameters(const AreaPlanningParameters& params) {
-    // 检查渔网线文件
+    
     if (params.fishnetShapefile.isEmpty()) {
         return qMakePair(false, QString("Fishnet shapefile path is empty"));
     }
@@ -1686,22 +1681,22 @@ QPair<bool, QString> GridPathPlanner::validateAreaParameters(const AreaPlanningP
         return qMakePair(false, QString("Fishnet shapefile does not exist: %1").arg(params.fishnetShapefile));
     }
     
-    // 检查覆盖率阈值
+    
     if (params.coverageThreshold < 0.0 || params.coverageThreshold > 1.0) {
         return qMakePair(false, QString("Coverage threshold must be between 0.0 and 1.0"));
     }
     
-    // 检查最大迭代次数
+
     if (params.maxIterations <= 0) {
         return qMakePair(false, QString("Max iterations must be greater than 0"));
     }
     
-    // 检查网格间距
+    
     if (params.gridSpacing <= 0.0) {
         return qMakePair(false, QString("Grid spacing must be greater than 0"));
     }
     
-    // 检查算法
+    
     QStringList validAlgorithms = {"Area_Spiral", "Area_Grid"};
     if (!validAlgorithms.contains(params.algorithm)) {
         return qMakePair(false, QString("Invalid algorithm: %1. Valid options: %2")
@@ -1713,14 +1708,14 @@ QPair<bool, QString> GridPathPlanner::validateAreaParameters(const AreaPlanningP
 
 void GridPathPlanner::asyncExecuteLinePlanning(const LinePlanningParameters& params) {
     LinePlanningResult result = executeLinePlanning(params);
-    // 信号已在executeLinePlanning中发出
+    
 }
 
 LinePlanningResult GridPathPlanner::executeLinePlanning(const LinePlanningParameters& params) {
     LinePlanningResult result;
     
     try {
-        // 验证参数
+        
         auto validation = validateLineParameters(params);
         if (!validation.first) {
             result.success = false;
@@ -1731,7 +1726,7 @@ LinePlanningResult GridPathPlanner::executeLinePlanning(const LinePlanningParame
         logMessage("Starting line event path planning", Qgis::MessageLevel::Info);
         emit progressUpdated(0, "开始线事件路径规划...");
 
-        // 步骤1: 从渔网线加载网格 (0-30%)
+        
         emit progressUpdated(10, "正在加载渔网线数据...");
         if (!buildGridFromFishnet(params.fishnetShapefile)) {
             result.errorMessage = "Failed to load fishnet lines shapefile";
@@ -1740,7 +1735,7 @@ LinePlanningResult GridPathPlanner::executeLinePlanning(const LinePlanningParame
         }
         emit progressUpdated(30, QString("渔网线加载完成，共%1个节点").arg(mGridNodes.size()));
 
-        // 步骤2: 加载风险线事件 (30-50%)
+        
         emit progressUpdated(35, "正在加载风险线事件数据...");
         if (!loadRiskLines(params.riskLinesShapefile)) {
             result.errorMessage = "Failed to load risk lines";
@@ -1749,7 +1744,7 @@ LinePlanningResult GridPathPlanner::executeLinePlanning(const LinePlanningParame
         }
         emit progressUpdated(50, QString("风险线事件加载完成，共%1条线").arg(mRiskLines.size()));
 
-        // 步骤3: 关联风险线到网格 (50-70%)
+        
         emit progressUpdated(55, "正在关联风险线到网格...");
         associateRiskLinesToGrid(params.maxRiskLineDistance);
         
@@ -1768,7 +1763,7 @@ LinePlanningResult GridPathPlanner::executeLinePlanning(const LinePlanningParame
             return result;
         }
 
-        // 步骤4: 寻找起始节点 (70-75%)
+        
         emit progressUpdated(72, "正在寻找起始节点...");
         int startNodeId = findNearestGridNode(params.startPoint);
         if (startNodeId == -1) {
@@ -1778,7 +1773,7 @@ LinePlanningResult GridPathPlanner::executeLinePlanning(const LinePlanningParame
         }
         emit progressUpdated(75, "起始节点确定");
 
-        // 步骤5: 执行线事件路径规划 (75-95%)
+        
         emit progressUpdated(80, "正在执行线事件路径规划算法...");
         
         if (params.algorithm == "Line_TSP_Dijkstra" || params.algorithm == "Line_TSP_AStar") {
@@ -1794,7 +1789,7 @@ LinePlanningResult GridPathPlanner::executeLinePlanning(const LinePlanningParame
 
         emit progressUpdated(95, "线事件路径规划完成");
 
-        // 步骤6: 计算统计信息 (95-100%)
+        
         emit progressUpdated(98, "正在计算统计信息...");
         
         result.success = true;
@@ -1803,7 +1798,7 @@ LinePlanningResult GridPathPlanner::executeLinePlanning(const LinePlanningParame
         result.completedRiskLines = 0;
         result.totalPathLength = 0.0;
         
-        // 计算路径长度和完成的风险线数量
+
         for (int i = 0; i < result.optimalPath.size(); ++i) {
             if (i > 0) {
                 double segmentLength = calculateDistance(
@@ -1815,7 +1810,7 @@ LinePlanningResult GridPathPlanner::executeLinePlanning(const LinePlanningParame
             }
         }
 
-        // 统计完成的风险线
+        
         for (const auto& riskLine : mRiskLines) {
             if (riskLine.isCompleted) {
                 result.completedRiskLines++;
@@ -1852,7 +1847,7 @@ bool GridPathPlanner::exportLinePathToFiles(const LinePlanningResult& result, co
         outputDir.mkpath(".");
     }
     
-    // 导出路径为CSV
+    
     QString csvPath = outputDir.filePath("line_path.csv");
     QFile csvFile(csvPath);
     
@@ -1879,7 +1874,7 @@ bool GridPathPlanner::exportLinePathToFiles(const LinePlanningResult& result, co
         logMessage(QString("Line path exported to CSV: %1").arg(csvPath), Qgis::MessageLevel::Success);
     }
     
-    // 导出路径为WKT
+    
     QString wktPath = outputDir.filePath("line_path.wkt");
     QFile wktFile(wktPath);
     
@@ -1901,7 +1896,7 @@ bool GridPathPlanner::exportLinePathToFiles(const LinePlanningResult& result, co
         logMessage(QString("Line path exported to WKT: %1").arg(wktPath), Qgis::MessageLevel::Success);
     }
     
-    // 导出风险线信息
+    
     QString riskLinesPath = outputDir.filePath("risk_lines_info.csv");
     QFile riskLinesFile(riskLinesPath);
     
@@ -1925,7 +1920,7 @@ bool GridPathPlanner::exportLinePathToFiles(const LinePlanningResult& result, co
         logMessage(QString("Risk lines info exported to: %1").arg(riskLinesPath), Qgis::MessageLevel::Success);
     }
     
-    // 导出统计报告
+    
     QString statsPath = outputDir.filePath("line_path_statistics.txt");
     QFile statsFile(statsPath);
     
@@ -1968,7 +1963,7 @@ QString GridPathPlanner::getLineStatistics(const LinePlanningResult& result) con
                          (double)result.completedRiskLines / result.totalRiskLines * 100.0 : 0.0;
     stats += QString("风险线完成率: %1%\n").arg(coverageRate, 0, 'f', 1);
     
-    // 统计每条风险线的详细信息
+    
     stats += "\n=== 风险线详细信息 ===\n";
     for (const auto& riskLine : result.riskLines) {
         stats += QString("风险线 %1: %2 -> %3, 完成状态: %4, 网格节点数: %5\n")
@@ -2020,12 +2015,12 @@ QVector<PathPoint> GridPathPlanner::solveAreaSpiralCoverage(int startNodeId, dou
     QSet<int> visitedNodes;
     QSet<int> availableNodes;
     
-    // === 步骤1：验证面事件数据结构 ===
+    
     logMessage("=== 验证面事件数据结构 ===", Qgis::MessageLevel::Info);
     logMessage(QString("mAreaGridNodes.size() = %1").arg(mAreaGridNodes.size()), Qgis::MessageLevel::Info);
     logMessage(QString("mAreaNodeIdToIndex.size() = %1").arg(mAreaNodeIdToIndex.size()), Qgis::MessageLevel::Info);
     
-    // 验证前5个面事件节点的完整信息
+    
     for (int i = 0; i < qMin(5, mAreaGridNodes.size()); ++i) {
         const GridNode& node = mAreaGridNodes[i];
         logMessage(QString("面事件节点 %1: ID=%2, 位置=(%3, %4, %5)")
@@ -2037,7 +2032,7 @@ QVector<PathPoint> GridPathPlanner::solveAreaSpiralCoverage(int startNodeId, dou
                   Qgis::MessageLevel::Info);
     }
     
-    // === 步骤2：初始化可用节点集合 ===
+
     logMessage("=== 初始化可用节点集合 ===", Qgis::MessageLevel::Info);
     for (const auto& node : mAreaGridNodes) {
         availableNodes.insert(node.id);
@@ -2067,20 +2062,20 @@ QVector<PathPoint> GridPathPlanner::solveAreaSpiralCoverage(int startNodeId, dou
               .arg(startNode.position.z(), 0, 'f', 6), 
               Qgis::MessageLevel::Info);
     
-    // === 步骤4：开始路径规划 ===
+
     logMessage("=== 开始路径规划 ===", Qgis::MessageLevel::Info);
     int currentNodeId = startNodeId;
     int iteration = 0;
     const int MAX_ITERATIONS = mAreaGridNodes.size() * 2;
     
     while (iteration < MAX_ITERATIONS && !availableNodes.isEmpty()) {
-        // === 步骤4.1：添加当前节点到路径 ===
+
         if (mAreaNodeIdToIndex.contains(currentNodeId) && !visitedNodes.contains(currentNodeId)) {
             int nodeIndex = mAreaNodeIdToIndex[currentNodeId];
             const GridNode& node = mAreaGridNodes[nodeIndex];
             
-            // 详细记录节点添加过程
-            if (iteration < 10) { // 只记录前10个节点的详细信息
+
+            if (iteration < 10) { 
                 logMessage(QString("添加节点到路径: 迭代=%1, 节点ID=%2, 索引=%3, 位置=(%4, %5, %6)")
                           .arg(iteration)
                           .arg(currentNodeId)
@@ -2091,7 +2086,7 @@ QVector<PathPoint> GridPathPlanner::solveAreaSpiralCoverage(int startNodeId, dou
                           Qgis::MessageLevel::Info);
             }
             
-            // 确保创建的PathPoint使用正确的坐标
+
             PathPoint pathPoint(node.position);
             pathPoint.isRiskPoint = false;
             pathPoint.riskPointId = -1;
@@ -2104,7 +2099,7 @@ QVector<PathPoint> GridPathPlanner::solveAreaSpiralCoverage(int startNodeId, dou
             logMessage(QString("警告：节点ID %1 无效或已访问，跳过").arg(currentNodeId), Qgis::MessageLevel::Warning);
         }
         
-        // === 步骤4.2：检查覆盖率 ===
+
         double currentCoverage = calculateAreaCoverageRate(visitedNodes);
         if (currentCoverage >= coverageThreshold) {
             logMessage(QString("达到覆盖率阈值: %1%，停止规划").arg(currentCoverage * 100.0, 0, 'f', 1), 
@@ -2112,10 +2107,10 @@ QVector<PathPoint> GridPathPlanner::solveAreaSpiralCoverage(int startNodeId, dou
             break;
         }
         
-        // === 步骤4.3：寻找下一个节点 ===
+
         int nextNodeId = findNextAreaSpiralNodeImproved(currentNodeId, visitedNodes, availableNodes);
         if (nextNodeId == -1) {
-            // 备用策略：寻找最近的未访问节点
+
             nextNodeId = findNearestAreaUnvisitedNode(currentNodeId, visitedNodes, availableNodes);
             if (nextNodeId == -1) {
                 logMessage("无法找到下一个节点，结束规划", Qgis::MessageLevel::Warning);
@@ -2126,7 +2121,7 @@ QVector<PathPoint> GridPathPlanner::solveAreaSpiralCoverage(int startNodeId, dou
         currentNodeId = nextNodeId;
         iteration++;
         
-        // 进度报告
+
         if (iteration % 50 == 0) {
             logMessage(QString("螺旋规划进度: 迭代=%1/%2, 覆盖率=%3% (%4/%5 节点)")
                       .arg(iteration).arg(MAX_ITERATIONS)
@@ -2136,11 +2131,11 @@ QVector<PathPoint> GridPathPlanner::solveAreaSpiralCoverage(int startNodeId, dou
         }
     }
     
-    // === 步骤5：验证生成的路径 ===
+
     logMessage("=== 验证生成的路径 ===", Qgis::MessageLevel::Info);
     logMessage(QString("生成的路径点数: %1").arg(coveragePath.size()), Qgis::MessageLevel::Info);
     
-    // 检查前10个路径点的坐标
+
     for (int i = 0; i < qMin(10, coveragePath.size()); ++i) {
         const PathPoint& point = coveragePath[i];
         logMessage(QString("路径点 %1: 坐标=(%2, %3, %4)")
@@ -2151,7 +2146,7 @@ QVector<PathPoint> GridPathPlanner::solveAreaSpiralCoverage(int startNodeId, dou
                   Qgis::MessageLevel::Info);
     }
     
-    // === 新增：验证路径点是否都来自渔网节点 ===
+
     logMessage("=== 验证路径点是否都来自渔网节点 ===", Qgis::MessageLevel::Info);
     int validPathPoints = 0;
     int invalidPathPoints = 0;
@@ -2160,10 +2155,9 @@ QVector<PathPoint> GridPathPlanner::solveAreaSpiralCoverage(int startNodeId, dou
         const PathPoint& pathPoint = coveragePath[i];
         bool foundMatchingNode = false;
         
-        // 检查是否有网格节点位置与路径点匹配
+
         for (const auto& node : mAreaGridNodes) {
-            double distance = calculateDistance(pathPoint.position, node.position);
-            if (distance < 0.01) { // 1厘米容差
+            double distance = calculateDistance(pathPoint.
                 foundMatchingNode = true;
                 break;
             }
@@ -2173,7 +2167,7 @@ QVector<PathPoint> GridPathPlanner::solveAreaSpiralCoverage(int startNodeId, dou
             validPathPoints++;
         } else {
             invalidPathPoints++;
-            if (invalidPathPoints <= 5) { // 只显示前5个无效点
+            if (invalidPathPoints <= 5) { 
                 logMessage(QString("警告：路径点 %1 位置=(%2, %3) 不匹配任何渔网节点")
                           .arg(i)
                           .arg(pathPoint.position.x(), 0, 'f', 3)
@@ -2193,7 +2187,7 @@ QVector<PathPoint> GridPathPlanner::solveAreaSpiralCoverage(int startNodeId, dou
         logMessage("所有路径点都来自渔网节点，符合预期。", Qgis::MessageLevel::Info);
     }
     
-    // === 步骤6：填补遗漏节点（如果需要） ===
+
     if (calculateAreaCoverageRate(visitedNodes) < coverageThreshold) {
         logMessage("尝试填补遗漏节点...", Qgis::MessageLevel::Info);
         fillAreaMissingNodes(coveragePath, visitedNodes, availableNodes, coverageThreshold);
@@ -2215,7 +2209,7 @@ QVector<PathPoint> GridPathPlanner::solveAreaGridCoverage(int startNodeId, doubl
     QSet<int> visitedNodes;
     QSet<int> availableNodes;
     
-    // 初始化可用节点
+
     for (const auto& node : mAreaGridNodes) {
         availableNodes.insert(node.id);
     }
@@ -2225,19 +2219,19 @@ QVector<PathPoint> GridPathPlanner::solveAreaGridCoverage(int startNodeId, doubl
         return coveragePath;
     }
     
-    // 构建网格结构信息
+
     buildAreaGridStructure();
     
     int currentNodeId = startNodeId;
     int iteration = 0;
     const int MAX_ITERATIONS = mAreaGridNodes.size() * 2;
     
-    // 使用改进的网格遍历策略：蛇形遍历
+
     bool movingRight = true;
     QVector<QVector<int>> gridRows = organizeAreaNodesIntoRows();
     
     while (iteration < MAX_ITERATIONS && !availableNodes.isEmpty()) {
-        // 添加当前节点到路径
+
         if (mAreaNodeIdToIndex.contains(currentNodeId) && !visitedNodes.contains(currentNodeId)) {
             int nodeIndex = mAreaNodeIdToIndex[currentNodeId];
             const GridNode& node = mAreaGridNodes[nodeIndex];
@@ -2252,7 +2246,7 @@ QVector<PathPoint> GridPathPlanner::solveAreaGridCoverage(int startNodeId, doubl
             availableNodes.remove(currentNodeId);
         }
         
-        // 检查覆盖率
+
         double currentCoverage = calculateAreaCoverageRate(visitedNodes);
         if (currentCoverage >= coverageThreshold) {
             logMessage(QString("Coverage threshold reached: %1%").arg(currentCoverage * 100.0, 0, 'f', 1), 
@@ -2260,10 +2254,10 @@ QVector<PathPoint> GridPathPlanner::solveAreaGridCoverage(int startNodeId, doubl
             break;
         }
         
-        // 寻找下一个网格节点（蛇形遍历）
+
         int nextNodeId = findNextAreaGridNodeImproved(currentNodeId, visitedNodes, availableNodes, movingRight);
         if (nextNodeId == -1) {
-            // 如果网格遍历失败，切换方向或找最近节点
+
             movingRight = !movingRight;
             nextNodeId = findNextAreaGridNodeImproved(currentNodeId, visitedNodes, availableNodes, movingRight);
             if (nextNodeId == -1) {
@@ -2287,7 +2281,7 @@ QVector<PathPoint> GridPathPlanner::solveAreaGridCoverage(int startNodeId, doubl
         }
     }
     
-    // 尝试填补遗漏的节点
+
     fillAreaMissingNodes(coveragePath, visitedNodes, availableNodes, coverageThreshold);
     
     double finalCoverage = calculateAreaCoverageRate(visitedNodes);
@@ -2303,19 +2297,19 @@ QVector<PathPoint> GridPathPlanner::solveAreaGridCoverage(int startNodeId, doubl
 void GridPathPlanner::buildGridConnections() {
     logMessage("Building grid connections...", Qgis::MessageLevel::Info);
     
-    // 清空现有连接
+
     for (auto& node : mGridNodes) {
         node.neighbors.clear();
     }
     
-    // 构建节点ID到索引的映射
+
     mNodeIdToIndex.clear();
     for (int i = 0; i < mGridNodes.size(); ++i) {
         mNodeIdToIndex[mGridNodes[i].id] = i;
     }
     
-    // 为每个节点找到邻近节点
-    const double connectionDistance = 20.0; // 连接距离阈值（米）
+
+    const double connectionDistance = 20.0; 
     
     for (int i = 0; i < mGridNodes.size(); ++i) {
         GridNode& node = mGridNodes[i];
@@ -2332,7 +2326,7 @@ void GridPathPlanner::buildGridConnections() {
         }
     }
     
-    // 统计连接信息
+
     int totalConnections = 0;
     int isolatedNodes = 0;
     
@@ -2356,7 +2350,7 @@ int GridPathPlanner::findNextSpiralNode(int currentNodeId, const QSet<int>& visi
     int currentNodeIndex = mNodeIdToIndex[currentNodeId];
     const GridNode& currentNode = mGridNodes[currentNodeIndex];
     
-    // 螺旋搜索模式：从近到远，按角度搜索
+
     QVector<QPair<double, int>> candidateNodes;
     
     for (int nodeId : availableNodes) {
@@ -2371,7 +2365,7 @@ int GridPathPlanner::findNextSpiralNode(int currentNodeId, const QSet<int>& visi
         double angle = qAtan2(node.position.y() - currentNode.position.y(), 
                              node.position.x() - currentNode.position.x());
         
-        // 优先选择距离适中、角度合适的节点
+
         double score = distance * (1.0 + qAbs(angle) / M_PI);
         candidateNodes.append(qMakePair(score, nodeId));
     }
@@ -2380,7 +2374,7 @@ int GridPathPlanner::findNextSpiralNode(int currentNodeId, const QSet<int>& visi
         return -1;
     }
     
-    // 按分数排序，选择最佳节点
+
     std::sort(candidateNodes.begin(), candidateNodes.end());
     return candidateNodes.first().second;
 }
@@ -2393,7 +2387,7 @@ int GridPathPlanner::findNextGridNode(int currentNodeId, const QSet<int>& visite
     int currentNodeIndex = mNodeIdToIndex[currentNodeId];
     const GridNode& currentNode = mGridNodes[currentNodeIndex];
     
-    // 网格搜索模式：按行列顺序搜索
+
     QVector<QPair<double, int>> candidateNodes;
     
     for (const auto& node : mGridNodes) {
@@ -2401,7 +2395,7 @@ int GridPathPlanner::findNextGridNode(int currentNodeId, const QSet<int>& visite
         
         double distance = calculateDistance(currentNode.position, node.position);
         
-        // 优先选择距离最近的节点
+
         candidateNodes.append(qMakePair(distance, node.id));
     }
     
@@ -2409,7 +2403,7 @@ int GridPathPlanner::findNextGridNode(int currentNodeId, const QSet<int>& visite
         return -1;
     }
     
-    // 按距离排序，选择最近的节点
+
     std::sort(candidateNodes.begin(), candidateNodes.end());
     return candidateNodes.first().second;
 }
@@ -2421,7 +2415,7 @@ AreaPlanningResult GridPathPlanner::executeAreaPlanning(const AreaPlanningParame
     result.success = false;
     result.algorithm = params.algorithm;
     
-    // 验证参数
+
     auto validation = validateAreaParameters(params);
     if (!validation.first) {
         result.errorMessage = validation.second;
@@ -2430,11 +2424,11 @@ AreaPlanningResult GridPathPlanner::executeAreaPlanning(const AreaPlanningParame
         return result;
     }
     
-    // 清空面事件相关数据结构
+
     mAreaGridNodes.clear();
     mAreaNodeIdToIndex.clear();
     
-    // 加载渔网线到面事件数据结构
+
     if (!buildAreaGridFromFishnet(params.fishnetShapefile)) {
         result.errorMessage = "Failed to load fishnet from shapefile";
         logMessage("Failed to load fishnet from shapefile", Qgis::MessageLevel::Critical);
@@ -2444,17 +2438,17 @@ AreaPlanningResult GridPathPlanner::executeAreaPlanning(const AreaPlanningParame
     logMessage(QString("Loaded %1 grid nodes from fishnet for area planning").arg(mAreaGridNodes.size()), 
               Qgis::MessageLevel::Info);
     
-    // 构建网格连接
+
     buildAreaGridConnections();
     
-    // 检查网格连通性
+
     if (mAreaGridNodes.isEmpty()) {
         result.errorMessage = "No grid nodes available";
         logMessage("No grid nodes available", Qgis::MessageLevel::Critical);
         return result;
     }
     
-    // 找到最近的起始节点
+
     int startNodeId = findNearestAreaGridNode(params.startPoint);
     if (startNodeId == -1) {
         result.errorMessage = "Cannot find nearest grid node to start point";
@@ -2464,7 +2458,7 @@ AreaPlanningResult GridPathPlanner::executeAreaPlanning(const AreaPlanningParame
     
     logMessage(QString("Start node ID: %1").arg(startNodeId), Qgis::MessageLevel::Info);
     
-    // 执行路径规划算法
+
     QVector<PathPoint> optimalPath;
     
     logMessage(QString("Selected algorithm: %1").arg(params.algorithm), Qgis::MessageLevel::Info);
@@ -2487,13 +2481,13 @@ AreaPlanningResult GridPathPlanner::executeAreaPlanning(const AreaPlanningParame
         return result;
     }
     
-    // 计算路径统计信息
+
     double totalPathLength = 0.0;
     for (int i = 1; i < optimalPath.size(); ++i) {
         totalPathLength += calculateDistance(optimalPath[i-1].position, optimalPath[i].position);
     }
     
-    // 计算覆盖率
+
     QSet<int> visitedNodes;
     for (const auto& point : optimalPath) {
         int nodeId = findNearestAreaGridNode(point.position);
@@ -2503,14 +2497,14 @@ AreaPlanningResult GridPathPlanner::executeAreaPlanning(const AreaPlanningParame
     }
     double coverageRate = calculateAreaCoverageRate(visitedNodes);
     
-    // 找到未覆盖区域
+
     QVector<QVector3D> uncoveredAreas = findAreaUncoveredAreas(visitedNodes);
     
-    // 计算平均路径密度
+
     double totalArea = mAreaGridNodes.size() * 100.0; // 假设每个网格单元100平方米
     double averagePathDensity = totalPathLength / totalArea;
     
-    // 设置结果
+
     result.success = true;
     result.gridNodes = mAreaGridNodes;
     result.optimalPath = optimalPath;
@@ -2539,7 +2533,7 @@ bool GridPathPlanner::exportAreaPathToFiles(const AreaPlanningResult& result, co
         outputDir.mkpath(".");
     }
     
-    // 导出路径为CSV
+
     QString csvPath = outputDir.filePath("area_path.csv");
     QFile csvFile(csvPath);
     
@@ -2549,14 +2543,14 @@ bool GridPathPlanner::exportAreaPathToFiles(const AreaPlanningResult& result, co
         
         out << "point_id,x,y,z,coverage_status\n";
         
-        // 记录前10个路径点的详细信息
+
         logMessage("=== 面事件路径点详细信息 ===", Qgis::MessageLevel::Info);
         logMessage(QString("总路径点数: %1").arg(result.optimalPath.size()), Qgis::MessageLevel::Info);
         
         for (int i = 0; i < result.optimalPath.size(); ++i) {
             const PathPoint& point = result.optimalPath[i];
             
-            // 输出前10个点的详细信息
+
             if (i < 10) {
                 logMessage(QString("路径点 %1: 坐标=(%2, %3, %4)")
                           .arg(i)
@@ -2576,11 +2570,11 @@ bool GridPathPlanner::exportAreaPathToFiles(const AreaPlanningResult& result, co
         csvFile.close();
         logMessage(QString("Exported area path to CSV: %1").arg(csvPath), Qgis::MessageLevel::Info);
         
-        // 验证导出的文件内容
+
         logMessage("=== 验证导出文件内容 ===", Qgis::MessageLevel::Info);
         logMessage(QString("CSV文件路径: %1").arg(csvPath), Qgis::MessageLevel::Info);
         
-        // 计算路径点的坐标范围
+
         if (!result.optimalPath.isEmpty()) {
             double minX = result.optimalPath[0].position.x();
             double maxX = minX;
@@ -2601,7 +2595,7 @@ bool GridPathPlanner::exportAreaPathToFiles(const AreaPlanningResult& result, co
         }
     }
     
-    // 导出路径为WKT
+
     QString wktPath = outputDir.filePath("area_path.wkt");
     QFile wktFile(wktPath);
     
@@ -2623,7 +2617,7 @@ bool GridPathPlanner::exportAreaPathToFiles(const AreaPlanningResult& result, co
         logMessage(QString("Area path exported to WKT: %1").arg(wktPath), Qgis::MessageLevel::Success);
     }
     
-    // 导出统计报告
+
     QString statsPath = outputDir.filePath("area_path_statistics.txt");
     QFile statsFile(statsPath);
     
@@ -2637,7 +2631,7 @@ bool GridPathPlanner::exportAreaPathToFiles(const AreaPlanningResult& result, co
         logMessage(QString("Area statistics exported to: %1").arg(statsPath), Qgis::MessageLevel::Success);
     }
     
-    // 导出面事件网格节点详细信息用于调试
+
     QString gridNodesPath = outputDir.filePath("area_grid_nodes_debug.csv");
     QFile gridNodesFile(gridNodesPath);
     
@@ -2688,7 +2682,7 @@ int GridPathPlanner::findNextSpiralNodeImproved(int currentNodeId, const QSet<in
     int currentNodeIndex = mAreaNodeIdToIndex[currentNodeId];
     const GridNode& currentNode = mAreaGridNodes[currentNodeIndex];
     
-    // 优先选择与当前节点直接连接的未访问节点（基于渔网线连接）
+
     QVector<QPair<double, int>> connectedNodes;
     QVector<QPair<double, int>> nearbyNodes;
     
@@ -2706,24 +2700,24 @@ int GridPathPlanner::findNextSpiralNodeImproved(int currentNodeId, const QSet<in
         double angle = qAtan2(neighborNode.position.y() - currentNode.position.y(), 
                              neighborNode.position.x() - currentNode.position.x());
         
-        // 优先级：距离 + 角度因子
+
         double priority = distance + qAbs(angle) * 10.0;
         connectedNodes.append(qMakePair(priority, neighborId));
     }
     
-    // 如果有直接连接的节点，优先选择
+
     if (!connectedNodes.isEmpty()) {
         std::sort(connectedNodes.begin(), connectedNodes.end());
         return connectedNodes.first().second;
     }
     
-    // 如果没有直接连接的节点，选择最近的可达节点（通过路径连接）
+
     for (int nodeId : availableNodes) {
         if (visitedNodes.contains(nodeId)) continue;
         
         if (!mAreaNodeIdToIndex.contains(nodeId)) continue;
         
-        // 检查是否可以通过渔网线路径到达
+
         if (isAreaNodeReachable(currentNodeId, nodeId, visitedNodes)) {
             int nodeIndex = mAreaNodeIdToIndex[nodeId];
             const GridNode& node = mAreaGridNodes[nodeIndex];
@@ -2741,7 +2735,7 @@ int GridPathPlanner::findNextSpiralNodeImproved(int currentNodeId, const QSet<in
     return -1;
 }
 
-// 面事件改进的网格节点搜索算法（基于渔网线连接的蛇形遍历）
+
 int GridPathPlanner::findNextAreaGridNodeImproved(int currentNodeId, const QSet<int>& visitedNodes, const QSet<int>& availableNodes, bool movingRight) {
     if (!mAreaNodeIdToIndex.contains(currentNodeId)) {
         return -1;
@@ -2750,14 +2744,14 @@ int GridPathPlanner::findNextAreaGridNodeImproved(int currentNodeId, const QSet<
     int currentNodeIndex = mAreaNodeIdToIndex[currentNodeId];
     const GridNode& currentNode = mAreaGridNodes[currentNodeIndex];
     
-    // 首先尝试直接连接的邻居节点
+
     QVector<QPair<double, int>> sameRowNodes;
     QVector<QPair<double, int>> nextRowNodes;
     QVector<QPair<double, int>> connectedNodes;
     
-    const double ROW_TOLERANCE = 25.0; // 行容差25米
+    const double ROW_TOLERANCE = 25.0; 
     
-    // 检查直接连接的邻居节点
+
     for (int neighborId : currentNode.neighbors) {
         if (visitedNodes.contains(neighborId) || !availableNodes.contains(neighborId)) {
             continue;
@@ -2772,35 +2766,35 @@ int GridPathPlanner::findNextAreaGridNodeImproved(int currentNodeId, const QSet<
         double deltaY = neighborNode.position.y() - currentNode.position.y();
         double distance = calculateDistance(currentNode.position, neighborNode.position);
         
-        // 判断是否在同一行
+
         if (qAbs(deltaY) <= ROW_TOLERANCE) {
-            // 根据移动方向选择节点
+
             if ((movingRight && deltaX > 0) || (!movingRight && deltaX < 0)) {
                 sameRowNodes.append(qMakePair(qAbs(deltaX), neighborId));
             }
         }
-        // 判断是否在下一行
+
         else if (qAbs(deltaY) > ROW_TOLERANCE && qAbs(deltaY) <= ROW_TOLERANCE * 2) {
             nextRowNodes.append(qMakePair(distance, neighborId));
         }
         
-        // 所有连接的节点
+
         connectedNodes.append(qMakePair(distance, neighborId));
     }
     
-    // 优先选择同一行的节点
+
     if (!sameRowNodes.isEmpty()) {
         std::sort(sameRowNodes.begin(), sameRowNodes.end());
         return sameRowNodes.first().second;
     }
     
-    // 其次选择下一行的节点
+
     if (!nextRowNodes.isEmpty()) {
         std::sort(nextRowNodes.begin(), nextRowNodes.end());
         return nextRowNodes.first().second;
     }
     
-    // 最后选择任何连接的节点
+
     if (!connectedNodes.isEmpty()) {
         std::sort(connectedNodes.begin(), connectedNodes.end());
         return connectedNodes.first().second;
@@ -2809,11 +2803,11 @@ int GridPathPlanner::findNextAreaGridNodeImproved(int currentNodeId, const QSet<
     return -1;
 }
 
-// 检查两个面事件节点是否可达（通过渔网线路径）
+
 bool GridPathPlanner::isAreaNodeReachable(int fromNodeId, int toNodeId, const QSet<int>& visitedNodes) {
     if (fromNodeId == toNodeId) return true;
     
-    // 使用BFS检查可达性，只通过渔网线连接
+
     QQueue<int> queue;
     QSet<int> checked;
     
@@ -2830,7 +2824,7 @@ bool GridPathPlanner::isAreaNodeReachable(int fromNodeId, int toNodeId, const QS
         
         for (int neighborId : currentNode.neighbors) {
             if (neighborId == toNodeId) {
-                return true; // 找到目标节点
+                return true; 
             }
             
             if (!checked.contains(neighborId) && !visitedNodes.contains(neighborId)) {
@@ -2839,7 +2833,7 @@ bool GridPathPlanner::isAreaNodeReachable(int fromNodeId, int toNodeId, const QS
             }
         }
         
-        // 限制搜索深度，避免无限搜索
+
         if (checked.size() > 1000) {
             break;
         }
@@ -2848,7 +2842,7 @@ bool GridPathPlanner::isAreaNodeReachable(int fromNodeId, int toNodeId, const QS
     return false;
 }
 
-// 寻找最近的未访问节点
+
 int GridPathPlanner::findNearestUnvisitedNode(int currentNodeId, const QSet<int>& visitedNodes, const QSet<int>& availableNodes) {
     if (!mNodeIdToIndex.contains(currentNodeId)) {
         return -1;
@@ -2878,7 +2872,7 @@ int GridPathPlanner::findNearestUnvisitedNode(int currentNodeId, const QSet<int>
     return nearestNodeId;
 }
 
-// 填补遗漏的节点
+
 void GridPathPlanner::fillMissingNodes(QVector<PathPoint>& coveragePath, QSet<int>& visitedNodes, const QSet<int>& availableNodes, double coverageThreshold) {
     logMessage("Filling missing nodes to improve coverage...", Qgis::MessageLevel::Info);
     
@@ -2890,7 +2884,7 @@ void GridPathPlanner::fillMissingNodes(QVector<PathPoint>& coveragePath, QSet<in
             break;
         }
         
-        // 找到最近的未访问节点
+
         int nearestNodeId = -1;
         double minDistance = std::numeric_limits<double>::max();
         QVector3D lastPosition = coveragePath.isEmpty() ? QVector3D() : coveragePath.last().position;
@@ -2910,7 +2904,7 @@ void GridPathPlanner::fillMissingNodes(QVector<PathPoint>& coveragePath, QSet<in
         
         if (nearestNodeId == -1) break;
         
-        // 添加节点到路径
+
         int nodeIndex = mNodeIdToIndex[nearestNodeId];
         const GridNode& node = mGridNodes[nodeIndex];
         
@@ -2929,14 +2923,11 @@ void GridPathPlanner::fillMissingNodes(QVector<PathPoint>& coveragePath, QSet<in
               Qgis::MessageLevel::Info);
 }
 
-// 构建网格结构信息
+
 void GridPathPlanner::buildGridStructure() {
     logMessage("Building grid structure for area coverage...", Qgis::MessageLevel::Info);
     
-    // 这个函数可以用来分析网格的结构特征
-    // 比如识别网格的行列结构、边界等
-    // 当前实现为占位符，可以根据需要扩展
-    
+
     if (mGridNodes.isEmpty()) {
         logMessage("No grid nodes to analyze", Qgis::MessageLevel::Warning);
         return;
@@ -2946,7 +2937,7 @@ void GridPathPlanner::buildGridStructure() {
               Qgis::MessageLevel::Info);
 }
 
-// 将节点组织成行
+
 QVector<QVector<int>> GridPathPlanner::organizeNodesIntoRows() {
     QVector<QVector<int>> gridRows;
     
@@ -2954,20 +2945,20 @@ QVector<QVector<int>> GridPathPlanner::organizeNodesIntoRows() {
         return gridRows;
     }
     
-    // 按Y坐标对节点进行分组
+
     QMap<int, QVector<int>> rowMap;
-    const double ROW_TOLERANCE = 25.0; // 行容差
+    const double ROW_TOLERANCE = 25.0; 
     
     for (const auto& node : mGridNodes) {
         int rowKey = static_cast<int>(node.position.y() / ROW_TOLERANCE);
         rowMap[rowKey].append(node.id);
     }
     
-    // 将每行的节点按X坐标排序
+
     for (auto it = rowMap.begin(); it != rowMap.end(); ++it) {
         QVector<int>& rowNodes = it.value();
         
-        // 按X坐标排序
+
         std::sort(rowNodes.begin(), rowNodes.end(), [this](int nodeId1, int nodeId2) {
             if (!mNodeIdToIndex.contains(nodeId1) || !mNodeIdToIndex.contains(nodeId2)) {
                 return false;
@@ -2997,7 +2988,7 @@ double GridPathPlanner::calculateCoverageRate(const QSet<int>& visitedNodes) con
 QVector<QVector3D> GridPathPlanner::findUncoveredAreas(const QSet<int>& visitedNodes) const {
     QVector<QVector3D> uncoveredCenters;
     
-    // 找到所有未访问的节点
+
     for (const auto& node : mGridNodes) {
         if (!visitedNodes.contains(node.id)) {
             uncoveredCenters.append(node.position);
@@ -3014,7 +3005,7 @@ QVector<GridNode> GridPathPlanner::buildCoverageGrid(double gridSpacing) {
         return coverageGrid;
     }
     
-    // 计算网格边界
+
     double minX = std::numeric_limits<double>::max();
     double minY = std::numeric_limits<double>::max();
     double maxX = std::numeric_limits<double>::lowest();
@@ -3027,13 +3018,13 @@ QVector<GridNode> GridPathPlanner::buildCoverageGrid(double gridSpacing) {
         maxY = qMax(maxY, static_cast<double>(node.position.y()));
     }
     
-    // 构建规则网格
+
     int gridId = 0;
     for (double x = minX; x <= maxX; x += gridSpacing) {
         for (double y = minY; y <= maxY; y += gridSpacing) {
-            QVector3D position(x, y, 50.0); // 默认高度50米
+            QVector3D position(x, y, 50.0); 
             
-            // 检查是否在原始网格范围内
+
             bool inOriginalGrid = false;
             for (const auto& node : mGridNodes) {
                 if (calculateDistance(position, node.position) <= gridSpacing) {
@@ -3055,37 +3046,37 @@ QVector<GridNode> GridPathPlanner::buildCoverageGrid(double gridSpacing) {
     return coverageGrid;
 }
 
-// 面事件专用函数实现
+
 
 bool GridPathPlanner::buildAreaGridFromFishnet(const QString& shapefile) {
     logMessage(QString("Loading area grid from fishnet: %1").arg(shapefile), Qgis::MessageLevel::Info);
     
-    // 清空现有数据
+
     mAreaGridNodes.clear();
     mAreaNodeIdToIndex.clear();
     
-    // 使用ShapefileHandler加载渔网线
+
     if (!mShapefileHandler->loadFishnetLines(shapefile)) {
         logMessage("Failed to load fishnet lines for area planning", Qgis::MessageLevel::Critical);
         return false;
     }
     
-    // 获取渔网线并构建网格节点
+
     const auto& fishnetLines = mShapefileHandler->getFishnetLines();
-    QMap<QString, int> pointToNodeId; // 点坐标到节点ID的映射
-    QMap<int, QVector<int>> nodeConnections; // 节点连接关系
+    QMap<QString, int> pointToNodeId; 
+    QMap<int, QVector<int>> nodeConnections; 
     int nodeId = 0;
     
     logMessage(QString("Processing %1 fishnet lines").arg(fishnetLines.size()), Qgis::MessageLevel::Info);
     
-    // 添加渔网线质量检查
+
     logMessage("=== 渔网线质量检查 ===", Qgis::MessageLevel::Info);
     int veryShortLines = 0;
     int duplicateLines = 0;
     double minLineLength = std::numeric_limits<double>::max();
     double maxLineLength = 0.0;
     double totalLineLength = 0.0;
-    QSet<QString> lineSignatures; // 用于检测重复线段
+                    QSet<QString> lineSignatures; 
     
     for (int i = 0; i < fishnetLines.size(); ++i) {
         const auto& line = fishnetLines[i];
@@ -3095,10 +3086,9 @@ bool GridPathPlanner::buildAreaGridFromFishnet(const QString& shapefile) {
         if (lineLength < minLineLength) minLineLength = lineLength;
         if (lineLength > maxLineLength) maxLineLength = lineLength;
         
-        // 检查异常短的线段（小于1米）
         if (lineLength < 1.0) {
             veryShortLines++;
-            if (veryShortLines <= 3) { // 只显示前3个异常短线段
+            if (veryShortLines <= 3) { 
                 logMessage(QString("异常短线段 %1: 长度=%2m, 起点=(%3, %4), 终点=(%5, %6)")
                           .arg(i)
                           .arg(lineLength, 0, 'f', 3)
@@ -3110,11 +3100,10 @@ bool GridPathPlanner::buildAreaGridFromFishnet(const QString& shapefile) {
             }
         }
         
-        // 检查重复线段
         QString startKey = QString("%1,%2").arg(line.first.x(), 0, 'f', 3).arg(line.first.y(), 0, 'f', 3);
         QString endKey = QString("%1,%2").arg(line.second.x(), 0, 'f', 3).arg(line.second.y(), 0, 'f', 3);
         QString lineSignature1 = QString("%1-%2").arg(startKey).arg(endKey);
-        QString lineSignature2 = QString("%1-%2").arg(endKey).arg(startKey); // 反向也算重复
+        QString lineSignature2 = QString("%1-%2").arg(endKey).arg(startKey); 
         
         if (lineSignatures.contains(lineSignature1) || lineSignatures.contains(lineSignature2)) {
             duplicateLines++;
@@ -3142,7 +3131,6 @@ bool GridPathPlanner::buildAreaGridFromFishnet(const QString& shapefile) {
                   Qgis::MessageLevel::Warning);
     }
     
-    // 输出前5条渔网线的详细信息用于调试
     logMessage("=== 渔网线详细信息 ===", Qgis::MessageLevel::Info);
     for (int i = 0; i < qMin(5, fishnetLines.size()); ++i) {
         const auto& line = fishnetLines[i];
@@ -3157,12 +3145,10 @@ bool GridPathPlanner::buildAreaGridFromFishnet(const QString& shapefile) {
                   Qgis::MessageLevel::Info);
     }
     
-    // 第一遍：创建所有唯一的节点
     for (const auto& line : fishnetLines) {
         QVector3D startPoint = line.first;
         QVector3D endPoint = line.second;
         
-        // 处理起点
         QString startKey = QString("%1,%2").arg(startPoint.x(), 0, 'f', 3).arg(startPoint.y(), 0, 'f', 3);
         int startNodeId;
         if (!pointToNodeId.contains(startKey)) {
@@ -3175,7 +3161,6 @@ bool GridPathPlanner::buildAreaGridFromFishnet(const QString& shapefile) {
             startNodeId = pointToNodeId[startKey];
         }
         
-        // 处理终点
         QString endKey = QString("%1,%2").arg(endPoint.x(), 0, 'f', 3).arg(endPoint.y(), 0, 'f', 3);
         int endNodeId;
         if (!pointToNodeId.contains(endKey)) {
@@ -3188,7 +3173,6 @@ bool GridPathPlanner::buildAreaGridFromFishnet(const QString& shapefile) {
             endNodeId = pointToNodeId[endKey];
         }
         
-        // 记录连接关系（双向）
         if (!nodeConnections[startNodeId].contains(endNodeId)) {
             nodeConnections[startNodeId].append(endNodeId);
         }
@@ -3197,7 +3181,6 @@ bool GridPathPlanner::buildAreaGridFromFishnet(const QString& shapefile) {
         }
     }
     
-    // 第二遍：根据渔网线的实际连接关系设置节点邻接关系
     for (auto it = nodeConnections.begin(); it != nodeConnections.end(); ++it) {
         int nodeId = it.key();
         const QVector<int>& connections = it.value();
@@ -3211,7 +3194,6 @@ bool GridPathPlanner::buildAreaGridFromFishnet(const QString& shapefile) {
     logMessage(QString("Built area grid with %1 nodes from fishnet lines").arg(mAreaGridNodes.size()), 
               Qgis::MessageLevel::Info);
     
-    // 输出前5个节点的详细信息用于调试
     logMessage("=== 面事件网格节点详细信息 ===", Qgis::MessageLevel::Info);
     for (int i = 0; i < qMin(5, mAreaGridNodes.size()); ++i) {
         const GridNode& node = mAreaGridNodes[i];
@@ -3223,8 +3205,7 @@ bool GridPathPlanner::buildAreaGridFromFishnet(const QString& shapefile) {
                   .arg(node.position.z(), 0, 'f', 2)
                   .arg(node.neighbors.size()), 
                   Qgis::MessageLevel::Info);
-        
-        // 显示邻居节点ID
+
         if (!node.neighbors.isEmpty()) {
             QStringList neighborIds;
             for (int neighborId : node.neighbors) {
@@ -3235,7 +3216,7 @@ bool GridPathPlanner::buildAreaGridFromFishnet(const QString& shapefile) {
         }
     }
     
-    // 验证节点连接
+
     int totalConnections = 0;
     for (const auto& node : mAreaGridNodes) {
         totalConnections += node.neighbors.size();
@@ -3243,7 +3224,7 @@ bool GridPathPlanner::buildAreaGridFromFishnet(const QString& shapefile) {
     logMessage(QString("Total fishnet-based connections: %1").arg(totalConnections / 2), 
               Qgis::MessageLevel::Info);
     
-    // 验证所有节点都来自渔网线端点
+
     logMessage("=== 验证节点来源 ===", Qgis::MessageLevel::Info);
     QSet<QString> fishnetEndpoints;
     for (const auto& line : fishnetLines) {
@@ -3261,7 +3242,7 @@ bool GridPathPlanner::buildAreaGridFromFishnet(const QString& shapefile) {
             validNodes++;
         } else {
             invalidNodes++;
-            if (invalidNodes <= 3) { // 只显示前3个无效节点
+            if (invalidNodes <= 3) { 
                 logMessage(QString("无效节点: ID=%1, 位置=(%2, %3) - 不在渔网线端点")
                           .arg(node.id)
                           .arg(node.position.x(), 0, 'f', 2)
@@ -3275,7 +3256,7 @@ bool GridPathPlanner::buildAreaGridFromFishnet(const QString& shapefile) {
               .arg(validNodes).arg(invalidNodes).arg(fishnetEndpoints.size()), 
               Qgis::MessageLevel::Info);
     
-    // 输出渔网线的范围信息
+
     if (!mAreaGridNodes.isEmpty()) {
         double minX = mAreaGridNodes[0].position.x();
         double maxX = minX;
@@ -3295,10 +3276,10 @@ bool GridPathPlanner::buildAreaGridFromFishnet(const QString& shapefile) {
                   Qgis::MessageLevel::Info);
     }
     
-    // === 新增：分析第一行节点的分布模式 ===
+
     logMessage("=== 分析第一行节点分布模式 ===", Qgis::MessageLevel::Info);
     
-    // 找到Y坐标最大的节点（第一行）
+
     QVector<GridNode> firstRowNodes;
     if (!mAreaGridNodes.isEmpty()) {
         double maxY = mAreaGridNodes[0].position.y();
@@ -3308,15 +3289,15 @@ bool GridPathPlanner::buildAreaGridFromFishnet(const QString& shapefile) {
             }
         }
         
-        // 收集第一行的所有节点
-        const double Y_TOLERANCE = 1.0; // Y坐标容差
+
+        const double Y_TOLERANCE = 1.0; 
         for (const auto& node : mAreaGridNodes) {
             if (qAbs(node.position.y() - maxY) <= Y_TOLERANCE) {
                 firstRowNodes.append(node);
             }
         }
         
-        // 按X坐标排序
+
         std::sort(firstRowNodes.begin(), firstRowNodes.end(), [](const GridNode& a, const GridNode& b) {
             return a.position.x() < b.position.x();
         });
@@ -3324,7 +3305,7 @@ bool GridPathPlanner::buildAreaGridFromFishnet(const QString& shapefile) {
         logMessage(QString("第一行节点数量: %1, Y坐标: %2").arg(firstRowNodes.size()).arg(maxY, 0, 'f', 2), 
                   Qgis::MessageLevel::Info);
         
-        // 分析前10个节点的X坐标间距
+
         if (firstRowNodes.size() >= 10) {
             QVector<double> intervals;
             for (int i = 1; i < qMin(10, firstRowNodes.size()); ++i) {
@@ -3334,7 +3315,7 @@ bool GridPathPlanner::buildAreaGridFromFishnet(const QString& shapefile) {
                           Qgis::MessageLevel::Info);
             }
             
-            // 计算间距的统计信息
+
             if (!intervals.isEmpty()) {
                 double minInterval = *std::min_element(intervals.begin(), intervals.end());
                 double maxInterval = *std::max_element(intervals.begin(), intervals.end());
@@ -3344,7 +3325,7 @@ bool GridPathPlanner::buildAreaGridFromFishnet(const QString& shapefile) {
                           .arg(minInterval, 0, 'f', 3).arg(maxInterval, 0, 'f', 3).arg(avgInterval, 0, 'f', 3), 
                           Qgis::MessageLevel::Info);
                 
-                // 判断是否为规则分布
+
                 double intervalVariance = maxInterval - minInterval;
                 if (intervalVariance < 0.1) {
                     logMessage("警告：第一行节点呈现规则分布！这可能是渔网生成工具造成的。", Qgis::MessageLevel::Warning);
@@ -3355,7 +3336,7 @@ bool GridPathPlanner::buildAreaGridFromFishnet(const QString& shapefile) {
         }
     }
     
-    // 进行更详细的规律性分析
+
     analyzeAreaGridRegularity();
     
     return !mAreaGridNodes.isEmpty();
@@ -3364,9 +3345,7 @@ bool GridPathPlanner::buildAreaGridFromFishnet(const QString& shapefile) {
 void GridPathPlanner::buildAreaGridConnections() {
     logMessage("Area grid connections already built from fishnet lines", Qgis::MessageLevel::Info);
     
-    // 连接关系已经在buildAreaGridFromFishnet中根据渔网线建立
-    // 这里只需要验证和记录连接统计信息
-    
+
     int totalConnections = 0;
     int isolatedNodes = 0;
     
@@ -3381,7 +3360,7 @@ void GridPathPlanner::buildAreaGridConnections() {
               .arg(totalConnections / 2).arg(isolatedNodes), 
               Qgis::MessageLevel::Info);
     
-    // 如果有孤立节点，发出警告
+
     if (isolatedNodes > 0) {
         logMessage(QString("Warning: %1 isolated nodes found in area grid").arg(isolatedNodes), 
                   Qgis::MessageLevel::Warning);
@@ -3418,7 +3397,7 @@ double GridPathPlanner::calculateAreaCoverageRate(const QSet<int>& visitedNodes)
 QVector<QVector3D> GridPathPlanner::findAreaUncoveredAreas(const QSet<int>& visitedNodes) const {
     QVector<QVector3D> uncoveredCenters;
     
-    // 找到所有未访问的节点
+
     for (const auto& node : mAreaGridNodes) {
         if (!visitedNodes.contains(node.id)) {
             uncoveredCenters.append(node.position);
@@ -3428,7 +3407,7 @@ QVector<QVector3D> GridPathPlanner::findAreaUncoveredAreas(const QSet<int>& visi
     return uncoveredCenters;
 }
 
-// 面事件改进的螺旋节点搜索算法
+
 int GridPathPlanner::findNextAreaSpiralNodeImproved(int currentNodeId, const QSet<int>& visitedNodes, const QSet<int>& availableNodes) {
     if (!mAreaNodeIdToIndex.contains(currentNodeId)) {
         return -1;
@@ -3437,8 +3416,8 @@ int GridPathPlanner::findNextAreaSpiralNodeImproved(int currentNodeId, const QSe
     int currentNodeIndex = mAreaNodeIdToIndex[currentNodeId];
     const GridNode& currentNode = mAreaGridNodes[currentNodeIndex];
     
-    // 多层螺旋搜索：按距离分层，每层内按角度排序
-    QMap<int, QVector<QPair<double, int>>> layerNodes; // 距离层 -> (角度, 节点ID)
+
+    QMap<int, QVector<QPair<double, int>>> layerNodes; 
     
     for (int nodeId : availableNodes) {
         if (visitedNodes.contains(nodeId)) continue;
@@ -3452,20 +3431,20 @@ int GridPathPlanner::findNextAreaSpiralNodeImproved(int currentNodeId, const QSe
         double angle = qAtan2(node.position.y() - currentNode.position.y(), 
                              node.position.x() - currentNode.position.x());
         
-        // 将节点按距离分层
-        int layer = static_cast<int>(distance / 50.0); // 每50米一层
+
+        int layer = static_cast<int>(distance / 50.0); 
         layerNodes[layer].append(qMakePair(angle, nodeId));
     }
     
-    // 从最近的层开始搜索
+
     for (auto it = layerNodes.begin(); it != layerNodes.end(); ++it) {
         QVector<QPair<double, int>>& nodes = it.value();
         if (nodes.isEmpty()) continue;
         
-        // 在当前层内按角度排序
+
         std::sort(nodes.begin(), nodes.end());
         
-        // 选择第一个可用节点
+
         for (const auto& pair : nodes) {
             int nodeId = pair.second;
             if (availableNodes.contains(nodeId) && !visitedNodes.contains(nodeId)) {
@@ -3479,7 +3458,7 @@ int GridPathPlanner::findNextAreaSpiralNodeImproved(int currentNodeId, const QSe
 
 
 
-// 寻找最近的未访问面事件节点
+
 int GridPathPlanner::findNearestAreaUnvisitedNode(int currentNodeId, const QSet<int>& visitedNodes, const QSet<int>& availableNodes) {
     if (!mAreaNodeIdToIndex.contains(currentNodeId)) {
         return -1;
@@ -3509,7 +3488,7 @@ int GridPathPlanner::findNearestAreaUnvisitedNode(int currentNodeId, const QSet<
     return nearestNodeId;
 }
 
-// 填补面事件遗漏的节点
+
 void GridPathPlanner::fillAreaMissingNodes(QVector<PathPoint>& coveragePath, QSet<int>& visitedNodes, const QSet<int>& availableNodes, double coverageThreshold) {
     logMessage("Filling missing area nodes to improve coverage...", Qgis::MessageLevel::Info);
     
@@ -3521,7 +3500,7 @@ void GridPathPlanner::fillAreaMissingNodes(QVector<PathPoint>& coveragePath, QSe
             break;
         }
         
-        // 找到最近的未访问节点
+
         int nearestNodeId = -1;
         double minDistance = std::numeric_limits<double>::max();
         QVector3D lastPosition = coveragePath.isEmpty() ? QVector3D() : coveragePath.last().position;
@@ -3541,7 +3520,7 @@ void GridPathPlanner::fillAreaMissingNodes(QVector<PathPoint>& coveragePath, QSe
         
         if (nearestNodeId == -1) break;
         
-        // 添加节点到路径
+
         int nodeIndex = mAreaNodeIdToIndex[nearestNodeId];
         const GridNode& node = mAreaGridNodes[nodeIndex];
         
@@ -3560,14 +3539,11 @@ void GridPathPlanner::fillAreaMissingNodes(QVector<PathPoint>& coveragePath, QSe
               Qgis::MessageLevel::Info);
 }
 
-// 构建面事件网格结构信息
+
 void GridPathPlanner::buildAreaGridStructure() {
     logMessage("Building area grid structure for coverage...", Qgis::MessageLevel::Info);
     
-    // 这个函数可以用来分析网格的结构特征
-    // 比如识别网格的行列结构、边界等
-    // 当前实现为占位符，可以根据需要扩展
-    
+
     if (mAreaGridNodes.isEmpty()) {
         logMessage("No area grid nodes to analyze", Qgis::MessageLevel::Warning);
         return;
@@ -3577,7 +3553,7 @@ void GridPathPlanner::buildAreaGridStructure() {
               Qgis::MessageLevel::Info);
 }
 
-// 将面事件节点组织成行
+
 QVector<QVector<int>> GridPathPlanner::organizeAreaNodesIntoRows() {
     QVector<QVector<int>> gridRows;
     
@@ -3585,20 +3561,20 @@ QVector<QVector<int>> GridPathPlanner::organizeAreaNodesIntoRows() {
         return gridRows;
     }
     
-    // 按Y坐标对节点进行分组
+
     QMap<int, QVector<int>> rowMap;
-    const double ROW_TOLERANCE = 25.0; // 行容差
+    const double ROW_TOLERANCE = 25.0; 
     
     for (const auto& node : mAreaGridNodes) {
         int rowKey = static_cast<int>(node.position.y() / ROW_TOLERANCE);
         rowMap[rowKey].append(node.id);
     }
     
-    // 将每行的节点按X坐标排序
+
     for (auto it = rowMap.begin(); it != rowMap.end(); ++it) {
         QVector<int>& rowNodes = it.value();
         
-        // 按X坐标排序
+
         std::sort(rowNodes.begin(), rowNodes.end(), [this](int nodeId1, int nodeId2) {
             if (!mAreaNodeIdToIndex.contains(nodeId1) || !mAreaNodeIdToIndex.contains(nodeId2)) {
                 return false;
@@ -3617,21 +3593,21 @@ QVector<QVector<int>> GridPathPlanner::organizeAreaNodesIntoRows() {
     return gridRows;
 }
 
-// ... existing code ...
+
 
 bool GridPathPlanner::analyzeAreaGridRegularity() {
     if (mAreaGridNodes.empty()) {
         return false;
     }
     
-    // 收集第一行节点（相同Y坐标）
+
     std::map<double, std::vector<GridNode*>> rowMap;
     for (auto& node : mAreaGridNodes) {
-        double roundedY = std::round(node.position.y() * 100.0) / 100.0;  // 精确到cm
+        double roundedY = std::round(node.position.y() * 100.0) / 100.0;  
         rowMap[roundedY].push_back(&node);
     }
     
-    // 找到节点最多的行
+
     auto maxRowIt = std::max_element(rowMap.begin(), rowMap.end(), 
         [](const auto& a, const auto& b) { return a.second.size() < b.second.size(); });
     
@@ -3639,7 +3615,7 @@ bool GridPathPlanner::analyzeAreaGridRegularity() {
         return false;
     }
     
-    // 分析最大行的节点间距
+
     std::vector<GridNode*>& rowNodes = maxRowIt->second;
     std::sort(rowNodes.begin(), rowNodes.end(), 
         [](const GridNode* a, const GridNode* b) { return a->position.x() < b->position.x(); });
@@ -3651,19 +3627,19 @@ bool GridPathPlanner::analyzeAreaGridRegularity() {
     
     if (intervals.empty()) return false;
     
-    // 计算间距统计
+
     double minInterval = *std::min_element(intervals.begin(), intervals.end());
     double maxInterval = *std::max_element(intervals.begin(), intervals.end());
     double avgInterval = std::accumulate(intervals.begin(), intervals.end(), 0.0) / intervals.size();
     
-    // 计算变异系数
+
     double variance = 0.0;
     for (double interval : intervals) {
         variance += (interval - avgInterval) * (interval - avgInterval);
     }
     variance /= intervals.size();
     double stdDev = std::sqrt(variance);
-    double coeffVar = stdDev / avgInterval;  // 变异系数
+    double coeffVar = stdDev / avgInterval;  
     
     logMessage("=== 渔网规律性分析 ===", Qgis::MessageLevel::Info);
     logMessage(QString("分析行: Y坐标=%1, 节点数=%2").arg(maxRowIt->first, 0, 'f', 2).arg(rowNodes.size()), Qgis::MessageLevel::Info);
@@ -3671,8 +3647,8 @@ bool GridPathPlanner::analyzeAreaGridRegularity() {
                .arg(minInterval, 0, 'f', 3).arg(maxInterval, 0, 'f', 3).arg(avgInterval, 0, 'f', 3), Qgis::MessageLevel::Info);
     logMessage(QString("标准差=%1, 变异系数=%2").arg(stdDev, 0, 'f', 3).arg(coeffVar, 0, 'f', 3), Qgis::MessageLevel::Info);
     
-    // 判断规律性
-    bool isRegular = coeffVar < 0.05;  // 变异系数小于5%认为是规则的
+
+    bool isRegular = coeffVar < 0.05;  
     
     if (isRegular) {
         logMessage("警告：渔网线呈现高度规则分布！", Qgis::MessageLevel::Warning);
@@ -3688,4 +3664,3 @@ bool GridPathPlanner::analyzeAreaGridRegularity() {
     return isRegular;
 }
 
-// ... existing code ...

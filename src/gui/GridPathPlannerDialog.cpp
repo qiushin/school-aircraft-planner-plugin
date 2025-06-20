@@ -1,9 +1,3 @@
-/****************************************************************************
-File: GridPathPlannerDialog.cpp
-Author: AI Assistant
-Date: 2025.1.6
-Description: 基于渔网线的网格路径规划对话框实现
-****************************************************************************/
 
 #include "GridPathPlannerDialog.h"
 #include "../log/QgisDebug.h"
@@ -162,7 +156,7 @@ void GridPathPlannerDialog::onLinePlanningCompleted(const LinePlanningResult& re
         
         showSuccess("line planning completed!");
         
-        // 启用导出和预览按钮
+
         mExportBtn->setEnabled(true);
         mPreviewBtn->setEnabled(true);
         
@@ -189,7 +183,7 @@ void GridPathPlannerDialog::onAreaPlanningCompleted(const AreaPlanningResult& re
         
         showSuccess("area planning completed!");
         
-        // 启用导出和预览按钮
+
         mExportBtn->setEnabled(true);
         mPreviewBtn->setEnabled(true);
         
@@ -269,7 +263,7 @@ void GridPathPlannerDialog::executePlanning() {
     QString planningMode = mPlanningModeCombo->currentText();
     
     if (planningMode == "Point Events") {
-        // 点事件规划
+     
         GridPlanningParameters params = getPlanningParameters();
         
         auto validation = mPlanner->validateParameters(params);
@@ -278,21 +272,21 @@ void GridPathPlannerDialog::executePlanning() {
             return;
         }
         
-        // 开始规划
+   
         mPlanningInProgress = true;
         updateUIState(false);
         mResultsText->clear();
         mResultsText->append("start point event planning...");
         
-        // 重置进度
+    
         mProgressBar->setValue(0);
         mProgressLabel->setText("preparing...");
         
-        // 执行点事件规划
+   
         mPlanner->asyncExecutePlanning(params);
         
     } else if (planningMode == "Line Events") {
-        // 线事件规划
+    
         LinePlanningParameters lineParams = getLinePlanningParameters();
         
         auto validation = mPlanner->validateLineParameters(lineParams);
@@ -301,41 +295,39 @@ void GridPathPlannerDialog::executePlanning() {
             return;
         }
         
-        // 开始规划
+   
         mPlanningInProgress = true;
         updateUIState(false);
         mResultsText->clear();
         mResultsText->append("start line event planning...");
         
-        // 重置进度
+ 
         mProgressBar->setValue(0);
         mProgressLabel->setText("preparing...");
         
-        // 执行线事件规划
+  
         mPlanner->asyncExecuteLinePlanning(lineParams);
         
     } else if (planningMode == "Area Events") {
-        // 面事件规划
+
         AreaPlanningParameters areaParams = getAreaPlanningParameters();
         
-        // 验证参数
+
         auto validation = mPlanner->validateAreaParameters(areaParams);
         if (!validation.first) {
             showError(validation.second);
             return;
         }
-        
-        // 开始规划
+
         mPlanningInProgress = true;
         updateUIState(false);
         mResultsText->clear();
         mResultsText->append("start area event planning...");
         
-        // 重置进度
+
         mProgressBar->setValue(0);
         mProgressLabel->setText("preparing...");
-        
-        // 执行面事件规划
+
         mPlanner->asyncExecuteAreaPlanning(areaParams);
         
     } else {
@@ -347,7 +339,7 @@ void GridPathPlannerDialog::exportResults() {
     QString planningMode = mPlanningModeCombo->currentText();
     
     if (planningMode == "Point Events") {
-        // 导出点事件规划结果
+
         if (!mCurrentResult.success) {
             showError("no point event results to export");
             return;
@@ -372,7 +364,7 @@ void GridPathPlannerDialog::exportResults() {
         }
         
     } else if (planningMode == "Line Events") {
-        // 导出线事件规划结果
+
         if (!mCurrentLineResult.success) {
             showError("no line event results to export");
             return;
@@ -397,7 +389,7 @@ void GridPathPlannerDialog::exportResults() {
         }
         
     } else if (planningMode == "Area Events") {
-        // 导出面事件规划结果
+
         if (!mCurrentAreaResult.success) {
             showError("no area event results to export");
             return;
@@ -430,7 +422,7 @@ void GridPathPlannerDialog::previewResults() {
     QString planningMode = mPlanningModeCombo->currentText();
     
     if (planningMode == "Point Events") {
-        // 预览点事件规划结果
+
         if (!mCurrentResult.success) {
             showError("no point event results to preview");
             return;
@@ -439,28 +431,28 @@ void GridPathPlannerDialog::previewResults() {
         emit showResults(mCurrentResult);
         
     } else if (planningMode == "Line Events") {
-        // 预览线事件规划结果
+
         if (!mCurrentLineResult.success) {
             showError("no line event results to preview");
             return;
         }
         
-        // 显示线事件规划统计信息
+
         QString stats = mPlanner->getLineStatistics(mCurrentLineResult);
         mResultsText->append("\n=== 线事件规划预览 ===");
         mResultsText->append(stats);
         
     } else if (planningMode == "Area Events") {
-        // 预览面事件规划结果
+
         if (!mCurrentAreaResult.success) {
             showError("no area event results to preview");
             return;
         }
         
-        // 发出面事件结果显示信号
+
         emit showAreaResults(mCurrentAreaResult);
         
-        // 显示面事件规划统计信息
+
         QString stats = mPlanner->getAreaStatistics(mCurrentAreaResult);
         mResultsText->append("\n=== 面事件规划预览 ===");
         mResultsText->append(stats);
@@ -472,8 +464,8 @@ void GridPathPlannerDialog::previewResults() {
 
 void GridPathPlannerDialog::resetForm() {
     resetToDefaults();
-    mCurrentLineResult = LinePlanningResult(); // 清除线事件规划结果
-    mCurrentAreaResult = AreaPlanningResult(); // 清除面事件规划结果
+    mCurrentLineResult = LinePlanningResult(); 
+    mCurrentAreaResult = AreaPlanningResult(); 
     mExportBtn->setEnabled(false);
     mPreviewBtn->setEnabled(false);
 }
@@ -481,7 +473,7 @@ void GridPathPlannerDialog::resetForm() {
 void GridPathPlannerDialog::validateInput() {
     bool valid = true;
     
-    // 检查渔网线文件
+
     if (!validateFilePath(mFishnetEdit->text())) {
         valid = false;
     }
@@ -489,18 +481,17 @@ void GridPathPlannerDialog::validateInput() {
     QString planningMode = mPlanningModeCombo->currentText();
     
     if (planningMode == "Point Events") {
-        // 点事件规划需要风险点文件
+
         if (!validateFilePath(mRiskPointsEdit->text())) {
             valid = false;
         }
     } else if (planningMode == "Line Events") {
-        // 线事件规划需要风险线文件
+
         if (!validateFilePath(mRiskLinesEdit->text())) {
             valid = false;
         }
     } else if (planningMode == "Area Events") {
-        // 面事件规划只需要渔网线文件，不需要额外的风险文件
-        // 渔网线文件已经在上面检查过了
+
     }
     
     mExecuteBtn->setEnabled(valid && !mPlanningInProgress);
@@ -514,7 +505,7 @@ void GridPathPlannerDialog::onAlgorithmChanged() {
 void GridPathPlannerDialog::onPlanningModeChanged() {
     QString planningMode = mPlanningModeCombo->currentText();
     
-    // 根据规划模式更新算法选项
+
     mAlgorithmCombo->clear();
     
     if (planningMode == "Point Events") {
@@ -532,7 +523,7 @@ void GridPathPlannerDialog::onPlanningModeChanged() {
 void GridPathPlannerDialog::initializeUI() {
     mMainLayout = new QVBoxLayout(this);
     
-    // 创建各个组
+
     mInputGroup = createInputGroup();
     mParametersGroup = createParametersGroup();
     mAlgorithmGroup = createAlgorithmGroup();
@@ -540,7 +531,7 @@ void GridPathPlannerDialog::initializeUI() {
     mProgressGroup = createProgressGroup();
     mResultsGroup = createResultsGroup();
     
-    // 添加到主布局
+
     mMainLayout->addWidget(mInputGroup);
     mMainLayout->addWidget(mParametersGroup);
     mMainLayout->addWidget(mAlgorithmGroup);
@@ -548,7 +539,7 @@ void GridPathPlannerDialog::initializeUI() {
     mMainLayout->addWidget(mProgressGroup);
     mMainLayout->addWidget(mResultsGroup);
     
-    // 创建按钮
+
     createButtons();
 }
 
@@ -556,21 +547,21 @@ QGroupBox* GridPathPlannerDialog::createInputGroup() {
     QGroupBox* group = new QGroupBox("input files");
     QGridLayout* layout = new QGridLayout(group);
     
-    // 渔网线文件
+
     layout->addWidget(new QLabel("fishnet file:"), 0, 0);
     mFishnetEdit = new QLineEdit();
     layout->addWidget(mFishnetEdit, 0, 1);
     mFishnetBrowseBtn = new QPushButton("browse...");
     layout->addWidget(mFishnetBrowseBtn, 0, 2);
     
-    // 风险点文件
+
     layout->addWidget(new QLabel("risk points file:"), 1, 0);
     mRiskPointsEdit = new QLineEdit();
     layout->addWidget(mRiskPointsEdit, 1, 1);
     mRiskPointsBrowseBtn = new QPushButton("browse...");
     layout->addWidget(mRiskPointsBrowseBtn, 1, 2);
     
-    // 风险线文件
+
     layout->addWidget(new QLabel("risk lines file:"), 2, 0);
     mRiskLinesEdit = new QLineEdit();
     layout->addWidget(mRiskLinesEdit, 2, 1);
@@ -584,7 +575,7 @@ QGroupBox* GridPathPlannerDialog::createParametersGroup() {
     QGroupBox* group = new QGroupBox("planning parameters");
     QGridLayout* layout = new QGridLayout(group);
     
-    // 起始点坐标
+
     layout->addWidget(new QLabel("start point X:"), 0, 0);
     mStartXSpin = new QDoubleSpinBox();
     mStartXSpin->setRange(-999999, 999999999);
@@ -603,14 +594,14 @@ QGroupBox* GridPathPlannerDialog::createParametersGroup() {
     mStartZSpin->setDecimals(1);
     layout->addWidget(mStartZSpin, 1, 1);
     
-    // 最大关联距离
+
     layout->addWidget(new QLabel("max risk point distance(meters):"), 1, 2);
     mMaxDistanceSpin = new QDoubleSpinBox();
     mMaxDistanceSpin->setRange(1.0, 500.0);
     mMaxDistanceSpin->setDecimals(1);
     layout->addWidget(mMaxDistanceSpin, 1, 3);
     
-    // 风险线最大关联距离
+
     layout->addWidget(new QLabel("max risk line distance(meters):"), 2, 0);
     mMaxRiskLineDistanceSpin = new QDoubleSpinBox();
     mMaxRiskLineDistanceSpin->setRange(1.0, 500.0);
@@ -618,7 +609,7 @@ QGroupBox* GridPathPlannerDialog::createParametersGroup() {
     mMaxRiskLineDistanceSpin->setValue(50.0);
     layout->addWidget(mMaxRiskLineDistanceSpin, 2, 1);
     
-    // 面事件规划参数
+
     layout->addWidget(new QLabel("coverage threshold(%):"), 2, 2);
     mCoverageThresholdSpin = new QDoubleSpinBox();
     mCoverageThresholdSpin->setRange(0.1, 100.0);
@@ -646,7 +637,6 @@ QGroupBox* GridPathPlannerDialog::createAlgorithmGroup() {
     QGroupBox* group = new QGroupBox("algorithm selection");
     QVBoxLayout* layout = new QVBoxLayout(group);
 
-    // 规划模式选择
     QHBoxLayout* modeLayout = new QHBoxLayout();
     modeLayout->addWidget(new QLabel("planning mode:"));
     mPlanningModeCombo = new QComboBox();
@@ -655,7 +645,7 @@ QGroupBox* GridPathPlannerDialog::createAlgorithmGroup() {
     modeLayout->addStretch();
     layout->addLayout(modeLayout);
 
-    // 算法选择
+
     QHBoxLayout* algoLayout = new QHBoxLayout();
     algoLayout->addWidget(new QLabel("algorithm:"));
     mAlgorithmCombo = new QComboBox();
@@ -664,7 +654,7 @@ QGroupBox* GridPathPlannerDialog::createAlgorithmGroup() {
     algoLayout->addStretch();
     layout->addLayout(algoLayout);
     
-    // 算法描述
+
     mAlgorithmDescLabel = new QLabel();
     mAlgorithmDescLabel->setWordWrap(true);
     mAlgorithmDescLabel->setStyleSheet("QLabel { color: #666; font-style: italic; }");
@@ -734,33 +724,33 @@ void GridPathPlannerDialog::createButtons() {
 }
 
 void GridPathPlannerDialog::connectSignals() {
-    // 文件浏览按钮
+
     connect(mFishnetBrowseBtn, &QPushButton::clicked, this, &GridPathPlannerDialog::browseFishnetFile);
     connect(mRiskPointsBrowseBtn, &QPushButton::clicked, this, &GridPathPlannerDialog::browseRiskPointsFile);
     connect(mRiskLinesBrowseBtn, &QPushButton::clicked, this, &GridPathPlannerDialog::browseRiskLinesFile);
     connect(mOutputBrowseBtn, &QPushButton::clicked, this, &GridPathPlannerDialog::browseOutputDirectory);
     
-    // 操作按钮
+
     connect(mExecuteBtn, &QPushButton::clicked, this, &GridPathPlannerDialog::executePlanning);
     connect(mExportBtn, &QPushButton::clicked, this, &GridPathPlannerDialog::exportResults);
     connect(mPreviewBtn, &QPushButton::clicked, this, &GridPathPlannerDialog::previewResults);
     connect(mResetBtn, &QPushButton::clicked, this, &GridPathPlannerDialog::resetForm);
     connect(mCloseBtn, &QPushButton::clicked, this, &QDialog::accept);
     
-    // 输入验证
+
     connect(mFishnetEdit, &QLineEdit::textChanged, this, &GridPathPlannerDialog::validateInput);
     connect(mRiskPointsEdit, &QLineEdit::textChanged, this, &GridPathPlannerDialog::validateInput);
     connect(mRiskLinesEdit, &QLineEdit::textChanged, this, &GridPathPlannerDialog::validateInput);
     
-    // 算法改变
+
     connect(mAlgorithmCombo, QOverload<const QString&>::of(&QComboBox::currentTextChanged),
             this, &GridPathPlannerDialog::onAlgorithmChanged);
     
-    // 规划模式改变
+
     connect(mPlanningModeCombo, QOverload<const QString&>::of(&QComboBox::currentTextChanged),
             this, &GridPathPlannerDialog::onPlanningModeChanged);
     
-    // 规划器信号
+
     connect(mPlanner, &GridPathPlanner::progressUpdated, this, &GridPathPlannerDialog::onProgressUpdated);
     connect(mPlanner, &GridPathPlanner::planningCompleted, this, &GridPathPlannerDialog::onPlanningCompleted);
     connect(mPlanner, &GridPathPlanner::linePlanningCompleted, this, &GridPathPlannerDialog::onLinePlanningCompleted);

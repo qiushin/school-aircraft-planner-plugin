@@ -1,9 +1,4 @@
-/****************************************************************************
-File: RiskEventPlannerDialog.cpp
-Author: AI Assistant
-Date: 2025.1.6
-Description: 风险事件路径规划对话框实现
-****************************************************************************/
+
 
 #include "RiskEventPlannerDialog.h"
 #include "../log/QgisDebug.h"
@@ -79,7 +74,7 @@ void RiskEventPlannerDialog::onProgressUpdated(int percentage, const QString& me
     mProgressBar->setValue(percentage);
     mProgressLabel->setText(message);
     
-    // 在结果文本中添加进度信息
+
     mResultsText->append(QString("[%1%] %2").arg(percentage).arg(message));
 }
 
@@ -99,7 +94,7 @@ void RiskEventPlannerDialog::onPlanningCompleted(const PlanningResult& result) {
         
         showSuccess("path planning completed!");
         
-        // 启用导出和预览按钮
+
         mExportBtn->setEnabled(true);
         mPreviewBtn->setEnabled(true);
         
@@ -162,10 +157,10 @@ void RiskEventPlannerDialog::executePlanning() {
         return;
     }
     
-    // 验证输入
+
     PlanningParameters params = getPlanningParameters();
     
-    // 调试：输出起始点坐标
+
     mResultsText->append(QString("DEBUG: UI Start Point: (%1, %2, %3)")
                         .arg(mStartXSpin->value())
                         .arg(mStartYSpin->value()) 
@@ -181,17 +176,17 @@ void RiskEventPlannerDialog::executePlanning() {
         return;
     }
     
-    // 开始规划
+
     mPlanningInProgress = true;
     updateUIState(false);
     mResultsText->clear();
     mResultsText->append("start executing path planning...");
     
-    // 重置进度
+
     mProgressBar->setValue(0);
     mProgressLabel->setText("preparing...");
     
-    // 执行规划
+
     mPlanner->asyncExecutePlanning(params);
 }
 
@@ -207,7 +202,7 @@ void RiskEventPlannerDialog::exportResults() {
         return;
     }
     
-    // 导出路径到SHP文件
+
     QString pathShpFile = QDir(outputPath).filePath("optimal_path.shp");
     if (mPlanner->exportPathToShapefile(pathShpFile)) {
         showSuccess(QString("path exported to: %1").arg(pathShpFile));
@@ -216,7 +211,7 @@ void RiskEventPlannerDialog::exportResults() {
         showError("path export failed");
     }
     
-    // 导出三角网到SHP文件
+
     QString triangulationShpFile = QDir(outputPath).filePath("triangulation.shp");
     if (mPlanner->exportTriangulationToShapefile(triangulationShpFile)) {
         mResultsText->append(QString("triangulation exported successfully: %1").arg(triangulationShpFile));
@@ -229,10 +224,10 @@ void RiskEventPlannerDialog::previewResults() {
         return;
     }
     
-    // 发送信号给主窗口来显示结果
+
     emit showResults(mCurrentResult);
     
-    // 显示详细统计信息
+
     QString statistics = mPlanner->getStatistics();
     mResultsText->append("\n=== detailed statistics ===");
     mResultsText->append(statistics);
@@ -264,21 +259,21 @@ void RiskEventPlannerDialog::validateInput() {
 void RiskEventPlannerDialog::initializeUI() {
     mMainLayout = new QVBoxLayout(this);
     
-    // 创建各个组
+
     mInputGroup = createInputGroup();
     mParametersGroup = createParametersGroup();
     mOutputGroup = createOutputGroup();
     mProgressGroup = createProgressGroup();
     mResultsGroup = createResultsGroup();
     
-    // 添加到主布局
+
     mMainLayout->addWidget(mInputGroup);
     mMainLayout->addWidget(mParametersGroup);
     mMainLayout->addWidget(mOutputGroup);
     mMainLayout->addWidget(mProgressGroup);
     mMainLayout->addWidget(mResultsGroup);
     
-    // 创建按钮
+
     createButtons();
     mMainLayout->addLayout(mButtonLayout);
 }
@@ -287,7 +282,7 @@ QGroupBox* RiskEventPlannerDialog::createInputGroup() {
     QGroupBox* group = new QGroupBox("input files");
     QGridLayout* layout = new QGridLayout(group);
     
-    // flight zone file
+
     layout->addWidget(new QLabel("flight zone shapefile:"), 0, 0);
     mFlightZoneEdit = new QLineEdit();
     mFlightZoneEdit->setPlaceholderText("select flight zone shapefile...");
@@ -295,7 +290,7 @@ QGroupBox* RiskEventPlannerDialog::createInputGroup() {
     mFlightZoneBrowseBtn = new QPushButton("browse...");
     layout->addWidget(mFlightZoneBrowseBtn, 0, 2);
     
-    // risk event points file
+
     layout->addWidget(new QLabel("risk event points shapefile:"), 1, 0);
     mRiskEventEdit = new QLineEdit();
     mRiskEventEdit->setPlaceholderText("select risk event points shapefile...");
@@ -310,7 +305,7 @@ QGroupBox* RiskEventPlannerDialog::createParametersGroup() {
     QGroupBox* group = new QGroupBox("planning parameters");
     QGridLayout* layout = new QGridLayout(group);
     
-    // start point coordinates
+
     layout->addWidget(new QLabel("start point coordinates:"), 0, 0);
     QHBoxLayout* startLayout = new QHBoxLayout();
     
@@ -318,26 +313,26 @@ QGroupBox* RiskEventPlannerDialog::createParametersGroup() {
     mStartXSpin = new QDoubleSpinBox();
     mStartXSpin->setRange(-999999, 999999);
     mStartXSpin->setDecimals(2);
-    mStartXSpin->setValue(558856.516); // 设置正确的X坐标默认值
+    mStartXSpin->setValue(558856.516); 
     startLayout->addWidget(mStartXSpin);
     
     startLayout->addWidget(new QLabel("Y:"));
     mStartYSpin = new QDoubleSpinBox();
     mStartYSpin->setRange(-9999999, 9999999);
     mStartYSpin->setDecimals(2);
-    mStartYSpin->setValue(3371566.848); // 设置正确的Y坐标默认值
+    mStartYSpin->setValue(3371566.848); 
     startLayout->addWidget(mStartYSpin);
     
     startLayout->addWidget(new QLabel("Z:"));
     mStartZSpin = new QDoubleSpinBox();
     mStartZSpin->setRange(0, 1000);
     mStartZSpin->setDecimals(2);
-    mStartZSpin->setValue(50.0); // 默认飞行高度50米
+    mStartZSpin->setValue(50.0); 
     startLayout->addWidget(mStartZSpin);
     
     layout->addLayout(startLayout, 0, 1, 1, 2);
     
-    // triangulation spacing
+
     layout->addWidget(new QLabel("triangulation spacing(meters):"), 1, 0);
     mSpacingSpin = new QDoubleSpinBox();
     mSpacingSpin->setRange(1.0, 1000.0);
@@ -345,7 +340,7 @@ QGroupBox* RiskEventPlannerDialog::createParametersGroup() {
     mSpacingSpin->setValue(10.0);
     layout->addWidget(mSpacingSpin, 1, 1);
     
-    // optimization algorithm
+                        
     layout->addWidget(new QLabel("optimization algorithm:"), 2, 0);
     mAlgorithmCombo = new QComboBox();
     mAlgorithmCombo->addItems({"NearestNeighbor", "GeneticAlgorithm"});
@@ -420,57 +415,56 @@ void RiskEventPlannerDialog::createButtons() {
 }
 
 void RiskEventPlannerDialog::connectSignals() {
-    // 文件浏览按钮
+
     connect(mFlightZoneBrowseBtn, &QPushButton::clicked, this, &RiskEventPlannerDialog::browseFlightZoneFile);
     connect(mRiskEventBrowseBtn, &QPushButton::clicked, this, &RiskEventPlannerDialog::browseRiskEventFile);
     connect(mOutputBrowseBtn, &QPushButton::clicked, this, &RiskEventPlannerDialog::browseOutputDirectory);
     
-    // 输入验证
+
     connect(mFlightZoneEdit, &QLineEdit::textChanged, this, &RiskEventPlannerDialog::validateInput);
     connect(mRiskEventEdit, &QLineEdit::textChanged, this, &RiskEventPlannerDialog::validateInput);
     connect(mOutputEdit, &QLineEdit::textChanged, this, &RiskEventPlannerDialog::validateInput);
     
-    // 操作按钮
+
     connect(mExecuteBtn, &QPushButton::clicked, this, &RiskEventPlannerDialog::executePlanning);
     connect(mExportBtn, &QPushButton::clicked, this, &RiskEventPlannerDialog::exportResults);
     connect(mPreviewBtn, &QPushButton::clicked, this, &RiskEventPlannerDialog::previewResults);
     connect(mResetBtn, &QPushButton::clicked, this, &RiskEventPlannerDialog::resetForm);
     connect(mCloseBtn, &QPushButton::clicked, this, &QDialog::accept);
     
-    // 规划器信号
+
     connect(mPlanner, &RiskEventPlanner::progressUpdated, this, &RiskEventPlannerDialog::onProgressUpdated);
     connect(mPlanner, &RiskEventPlanner::planningCompleted, this, &RiskEventPlannerDialog::onPlanningCompleted);
     connect(mPlanner, &RiskEventPlanner::planningFailed, this, &RiskEventPlannerDialog::onPlanningFailed);
 }
 
 void RiskEventPlannerDialog::setInitialValues() {
-    // 设置默认输出目录
+
     QString defaultOutput = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/RiskEventPlanning";
     mOutputEdit->setText(defaultOutput);
     
-    // 设置默认的测试文件路径
+
     QString appDir = QCoreApplication::applicationDirPath();
     QString resourcesDir = QDir(appDir).absoluteFilePath("../resources/map");
     
-    // 设置默认的飞行区域文件（可以用溺水风险区作为测试）
+
     QString flightZoneFile = QDir(resourcesDir).absoluteFilePath("溺水风险区.shp");
     if (QFileInfo::exists(flightZoneFile)) {
         mFlightZoneEdit->setText(flightZoneFile);
     }
     
-    // 设置默认的风险事件点文件
+
     QString riskEventFile = QDir(resourcesDir).absoluteFilePath("人群密集点（上课时段）.shp");
     if (QFileInfo::exists(riskEventFile)) {
         mRiskEventEdit->setText(riskEventFile);
     }
     
-    // 根据用户数据设置合理的起始点坐标
-    // 基于报告中的坐标范围，设置起始点在数据中心附近
-    mStartXSpin->setValue(558856.516);  // 数据X坐标中心
-    mStartYSpin->setValue(3371566.848); // 数据Y坐标中心
-    mStartZSpin->setValue(9.0);        // 保持50米飞行高度
+
+    mStartXSpin->setValue(558856.516); 
+    mStartYSpin->setValue(3371566.848); 
+    mStartZSpin->setValue(9.0);        
     
-    // 如果文件路径设置成功，输出调试信息
+
     logMessage(QString("default flight zone file: %1").arg(mFlightZoneEdit->text()), Qgis::MessageLevel::Info);
     logMessage(QString("default risk event file: %1").arg(mRiskEventEdit->text()), Qgis::MessageLevel::Info);
     logMessage(QString("start point set to data center: (%1, %2)").arg(mStartXSpin->value()).arg(mStartYSpin->value()), Qgis::MessageLevel::Info);
@@ -491,7 +485,7 @@ void RiskEventPlannerDialog::updateUIState(bool enabled) {
     mAlgorithmCombo->setEnabled(enabled);
     
     if (enabled) {
-        validateInput(); // 重新验证输入以更新执行按钮状态
+            validateInput(); 
     } else {
         mExecuteBtn->setEnabled(false);
     }

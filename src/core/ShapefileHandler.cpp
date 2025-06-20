@@ -12,12 +12,10 @@
 #include <qgspointxy.h>
 
 ShapefileHandler::ShapefileHandler() {
-    // 检查QGIS应用程序是否初始化
     if (!QgsApplication::instance()) {
         logMessage("QGIS application not initialized", Qgis::MessageLevel::Critical);
     }
     
-    // 检查OGR提供程序是否可用
     QgsProviderRegistry* registry = QgsProviderRegistry::instance();
     if (!registry) {
         logMessage("Cannot access QGIS provider registry", Qgis::MessageLevel::Critical);
@@ -40,14 +38,12 @@ ShapefileHandler::~ShapefileHandler() {
 bool ShapefileHandler::loadFlightZonePolygon(const QString& filePath) {
     logMessage(QString("attempting to load flight zone file: %1").arg(filePath), Qgis::MessageLevel::Info);
     
-    // 检查文件是否存在
     QFileInfo fileInfo(filePath);
     if (!fileInfo.exists()) {
         logMessage(QString("file not found: %1").arg(filePath), Qgis::MessageLevel::Critical);
         return false;
     }
 
-    // 创建矢量图层
     QgsVectorLayer* layer = new QgsVectorLayer(filePath, "flight_zone", "ogr");
     if (!layer || !layer->isValid()) {
         QString errorMsg = layer ? layer->error().message() : "failed to create layer";
@@ -58,11 +54,9 @@ bool ShapefileHandler::loadFlightZonePolygon(const QString& filePath) {
 
     logMessage(QString("successfully created layer, feature count: %1").arg(layer->featureCount()), Qgis::MessageLevel::Info);
 
-    // 清除旧数据
     mFlightZonePolygons.clear();
     mFlightZoneBounds = QRectF();
 
-    // 读取所有要素
     QgsFeatureIterator features = layer->getFeatures();
     QgsFeature feature;
     QRectF bounds;
@@ -72,12 +66,10 @@ bool ShapefileHandler::loadFlightZonePolygon(const QString& filePath) {
         QgsGeometry geometry = feature.geometry();
         if (geometry.isNull()) continue;
 
-        // 转换为多边形
         QPolygonF polygon = geometryToPolygon(geometry);
         if (!polygon.isEmpty()) {
             mFlightZonePolygons.append(polygon);
             
-            // 更新边界框
             QRectF polyBounds = polygon.boundingRect();
             if (firstFeature) {
                 bounds = polyBounds;
@@ -99,14 +91,12 @@ bool ShapefileHandler::loadFlightZonePolygon(const QString& filePath) {
 bool ShapefileHandler::loadRiskEventPoints(const QString& filePath) {
     logMessage(QString("attempting to load risk event points file: %1").arg(filePath), Qgis::MessageLevel::Info);
     
-    // 检查文件是否存在
     QFileInfo fileInfo(filePath);
     if (!fileInfo.exists()) {
         logMessage(QString("file not found: %1").arg(filePath), Qgis::MessageLevel::Critical);
         return false;
     }
 
-    // 创建矢量图层
     QgsVectorLayer* layer = new QgsVectorLayer(filePath, "risk_points", "ogr");
     if (!layer || !layer->isValid()) {
         QString errorMsg = layer ? layer->error().message() : "failed to create layer";
@@ -117,10 +107,8 @@ bool ShapefileHandler::loadRiskEventPoints(const QString& filePath) {
 
     logMessage(QString("successfully created risk points layer, feature count: %1").arg(layer->featureCount()), Qgis::MessageLevel::Info);
 
-    // 清除旧数据
     mRiskEventPoints.clear();
 
-    // 读取所有要素
     QgsFeatureIterator features = layer->getFeatures();
     QgsFeature feature;
     int featureCount = 0;
@@ -154,14 +142,12 @@ bool ShapefileHandler::loadRiskEventPoints(const QString& filePath) {
 bool ShapefileHandler::loadFishnetLines(const QString& filePath) {
     logMessage(QString("attempting to load fishnet lines file: %1").arg(filePath), Qgis::MessageLevel::Info);
     
-    // 检查文件是否存在
     QFileInfo fileInfo(filePath);
     if (!fileInfo.exists()) {
         logMessage(QString("file not found: %1").arg(filePath), Qgis::MessageLevel::Critical);
         return false;
     }
 
-    // 创建矢量图层
     QgsVectorLayer* layer = new QgsVectorLayer(filePath, "fishnet_lines", "ogr");
     if (!layer || !layer->isValid()) {
         QString errorMsg = layer ? layer->error().message() : "failed to create layer";
@@ -172,10 +158,8 @@ bool ShapefileHandler::loadFishnetLines(const QString& filePath) {
 
     logMessage(QString("successfully created fishnet layer, feature count: %1").arg(layer->featureCount()), Qgis::MessageLevel::Info);
 
-    // 清除旧数据
     mFishnetLines.clear();
 
-    // 读取所有要素
     QgsFeatureIterator features = layer->getFeatures();
     QgsFeature feature;
     int featureCount = 0;
@@ -189,32 +173,28 @@ bool ShapefileHandler::loadFishnetLines(const QString& filePath) {
             continue;
         }
 
-        // 添加几何类型调试信息（只显示前3个要素）
         if (featureCount <= 3) {
             logMessage(QString("Feature %1: geometry type = %2").arg(featureCount).arg(static_cast<int>(geometry.type())), Qgis::MessageLevel::Info);
-            // 显示几何的WKT表示来调试
             QString wkt = geometry.asWkt();
             if (wkt.length() > 200) {
-                wkt = wkt.left(200) + "..."; // 截断过长的WKT
+                wkt = wkt.left(200) + "..."; 
             }
             logMessage(QString("Feature %1: WKT = %2").arg(featureCount).arg(wkt), Qgis::MessageLevel::Info);
         }
 
-        // 尝试作为线几何处理
         try {
             QgsPolylineXY line = geometry.asPolyline();
             if (featureCount <= 3) {
                 logMessage(QString("Feature %1: asPolyline succeeded, points = %2").arg(featureCount).arg(line.size()), Qgis::MessageLevel::Info);
             }
             if (line.size() >= 2) {
-                // 每两个相邻点之间形成一条线段
                 for (int i = 0; i < line.size() - 1; ++i) {
                     QVector3D startPoint(line[i].x(), line[i].y(), 0.0);
                     QVector3D endPoint(line[i+1].x(), line[i+1].y(), 0.0);
                     mFishnetLines.append(qMakePair(startPoint, endPoint));
                     processedLines++;
                 }
-                continue; // 成功处理为线，继续下一个要素
+                continue; 
             } else if (featureCount <= 3) {
                 logMessage(QString("Feature %1: line has only %2 points, trying multiline").arg(featureCount).arg(line.size()), Qgis::MessageLevel::Info);
             }
@@ -224,7 +204,6 @@ bool ShapefileHandler::loadFishnetLines(const QString& filePath) {
             }
         }
         
-        // 尝试作为多线串处理
         try {
             QgsMultiPolylineXY multiLine = geometry.asMultiPolyline();
             if (featureCount <= 3) {
@@ -241,16 +220,14 @@ bool ShapefileHandler::loadFishnetLines(const QString& filePath) {
                 }
             }
             if (!multiLine.isEmpty()) {
-                continue; // 成功处理为多线串，继续下一个要素
+                continue; 
             }
         } catch (...) {
             if (featureCount <= 3) {
                 logMessage(QString("Feature %1: asMultiPolyline failed, trying polygon").arg(featureCount), Qgis::MessageLevel::Info);
             }
-            // 转换为多线串失败，尝试作为多边形处理
         }
         
-        // 尝试作为多边形处理（将边界作为线）
         try {
             QgsPolygonXY polygon = geometry.asPolygon();
             if (featureCount <= 3) {
@@ -261,14 +238,13 @@ bool ShapefileHandler::loadFishnetLines(const QString& filePath) {
                 if (featureCount <= 3) {
                     logMessage(QString("Feature %1: polygon outer ring points = %2").arg(featureCount).arg(outerRing.size()), Qgis::MessageLevel::Info);
                 }
-                // 将多边形的每条边作为线段
                 for (int i = 0; i < outerRing.size() - 1; ++i) {
                     QVector3D startPoint(outerRing[i].x(), outerRing[i].y(), 0.0);
                     QVector3D endPoint(outerRing[i+1].x(), outerRing[i+1].y(), 0.0);
                     mFishnetLines.append(qMakePair(startPoint, endPoint));
                     processedLines++;
                 }
-                continue; // 成功处理为多边形，继续下一个要素
+                continue; 
             } else if (featureCount <= 3) {
                 logMessage(QString("Feature %1: polygon is empty").arg(featureCount), Qgis::MessageLevel::Warning);
             }
@@ -276,7 +252,6 @@ bool ShapefileHandler::loadFishnetLines(const QString& filePath) {
             if (featureCount <= 3) {
                 logMessage(QString("Feature %1: asPolygon also failed, skipping").arg(featureCount), Qgis::MessageLevel::Warning);
             }
-            // 都失败了，跳过这个几何体
             continue;
         }
     }
@@ -297,15 +272,13 @@ bool ShapefileHandler::loadFishnetLines(const QString& filePath) {
 
 bool ShapefileHandler::loadRiskLineEvents(const QString& filePath) {
     logMessage(QString("attempting to load risk line events file: %1").arg(filePath), Qgis::MessageLevel::Info);
-    
-    // 检查文件是否存在
+
     QFileInfo fileInfo(filePath);
     if (!fileInfo.exists()) {
         logMessage(QString("file not found: %1").arg(filePath), Qgis::MessageLevel::Critical);
         return false;
     }
 
-    // 创建矢量图层
     QgsVectorLayer* layer = new QgsVectorLayer(filePath, "risk_lines", "ogr");
     if (!layer || !layer->isValid()) {
         QString errorMsg = layer ? layer->error().message() : "failed to create layer";
@@ -316,10 +289,8 @@ bool ShapefileHandler::loadRiskLineEvents(const QString& filePath) {
 
     logMessage(QString("successfully created risk lines layer, feature count: %1").arg(layer->featureCount()), Qgis::MessageLevel::Info);
 
-    // 清除旧数据
     mRiskLineEvents.clear();
 
-    // 读取所有要素
     QgsFeatureIterator features = layer->getFeatures();
     QgsFeature feature;
     int featureCount = 0;
@@ -334,14 +305,12 @@ bool ShapefileHandler::loadRiskLineEvents(const QString& filePath) {
             continue;
         }
 
-        // 尝试作为单线处理
         try {
             QgsPolylineXY line = geometry.asPolyline();
             if (featureCount <= 3) {
                 logMessage(QString("Feature %1: asPolyline succeeded, points = %2").arg(featureCount).arg(line.size()), Qgis::MessageLevel::Info);
             }
             if (line.size() >= 2) {
-                // 取第一个点和最后一个点作为线的起点和终点
                 QVector3D startPoint(line.first().x(), line.first().y(), 0.0);
                 QVector3D endPoint(line.last().x(), line.last().y(), 0.0);
                 mRiskLineEvents.append(qMakePair(startPoint, endPoint));
@@ -354,7 +323,6 @@ bool ShapefileHandler::loadRiskLineEvents(const QString& filePath) {
             }
         }
         
-        // 尝试作为多线串处理
         try {
             QgsMultiPolylineXY multiLine = geometry.asMultiPolyline();
             if (featureCount <= 3) {
@@ -417,19 +385,17 @@ QPolygonF ShapefileHandler::geometryToPolygon(const QgsGeometry& geometry) {
     logMessage("attempting to convert geometry to polygon", Qgis::MessageLevel::Info);
     
     try {
-        // 尝试直接获取边界坐标作为备用方案
         QgsRectangle bbox = geometry.boundingBox();
         if (bbox.isNull()) {
             logMessage("geometry has null bounding box", Qgis::MessageLevel::Warning);
             return polygon;
         }
         
-        // 方法1: 尝试转换为单个多边形
         try {
             QgsPolygonXY singlePolygon = geometry.asPolygon();
             if (!singlePolygon.isEmpty() && !singlePolygon.first().isEmpty()) {
                 logMessage("successfully converted as single polygon", Qgis::MessageLevel::Info);
-                QgsPolylineXY outerRing = singlePolygon.first(); // 外环
+                QgsPolylineXY outerRing = singlePolygon.first(); 
                 for (const QgsPointXY& point : outerRing) {
                     polygon.append(QPointF(point.x(), point.y()));
                 }
@@ -437,16 +403,14 @@ QPolygonF ShapefileHandler::geometryToPolygon(const QgsGeometry& geometry) {
                 return polygon;
             }
         } catch (...) {
-            // 单个多边形转换失败，继续尝试其他方法
         }
         
-        // 方法2: 尝试转换为多多边形
         try {
             QgsMultiPolygonXY multiPolygon = geometry.asMultiPolygon();
             if (!multiPolygon.isEmpty() && !multiPolygon.first().isEmpty() && !multiPolygon.first().first().isEmpty()) {
                 logMessage("successfully converted as multi polygon", Qgis::MessageLevel::Info);
                 QgsPolygonXY firstPolygon = multiPolygon.first();
-                QgsPolylineXY outerRing = firstPolygon.first(); // 第一个多边形的外环
+                QgsPolylineXY outerRing = firstPolygon.first(); 
                 for (const QgsPointXY& point : outerRing) {
                     polygon.append(QPointF(point.x(), point.y()));
                 }
@@ -454,16 +418,14 @@ QPolygonF ShapefileHandler::geometryToPolygon(const QgsGeometry& geometry) {
                 return polygon;
             }
         } catch (...) {
-            // 多多边形转换失败，使用备用方案
-        }
+            }
         
-        // 方法3: 备用方案 - 使用边界框创建矩形多边形
         logMessage("failed to extract polygon points, using bounding box as fallback", Qgis::MessageLevel::Warning);
         polygon.append(QPointF(bbox.xMinimum(), bbox.yMinimum()));
         polygon.append(QPointF(bbox.xMaximum(), bbox.yMinimum()));
         polygon.append(QPointF(bbox.xMaximum(), bbox.yMaximum()));
         polygon.append(QPointF(bbox.xMinimum(), bbox.yMaximum()));
-        polygon.append(QPointF(bbox.xMinimum(), bbox.yMinimum())); // 闭合
+                polygon.append(QPointF(bbox.xMinimum(), bbox.yMinimum())); 
         
         logMessage(QString("created bounding box polygon with %1 points").arg(polygon.size()), Qgis::MessageLevel::Info);
         

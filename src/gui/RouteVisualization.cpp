@@ -1,9 +1,3 @@
-/****************************************************************************
-File: RouteVisualization.cpp
-Author: AI Assistant
-Date: 2025.1.6
-Description: 路径可视化模块实现
-****************************************************************************/
 
 #include "RouteVisualization.h"
 #include "../log/QgisDebug.h"
@@ -12,8 +6,8 @@ Description: 路径可视化模块实现
 
 RouteVisualization::RouteVisualization(QObject *parent)
     : QObject(parent) {
-    // 构造函数
-    mStyle = VisualizationStyle(); // 使用默认样式
+   
+    mStyle = VisualizationStyle(); 
 }
 
 RouteVisualization::~RouteVisualization() {
@@ -42,25 +36,22 @@ void RouteVisualization::render(QPainter& painter, const QRectF& viewRect) {
         return;
     }
 
-    // 设置视图变换
     mViewTransform.viewBounds = viewRect;
     mViewTransform.worldBounds = mDataBounds;
-    
-    // 计算缩放比例
+
     double scaleX = viewRect.width() / mDataBounds.width();
     double scaleY = viewRect.height() / mDataBounds.height();
     mViewTransform.scale = qMin(scaleX, scaleY) * 0.9; // 留出10%的边距
     
-    // 计算偏移量使数据居中
+
     QPointF dataCenter = mDataBounds.center();
     QPointF viewCenter = viewRect.center();
     mViewTransform.offset = viewCenter - QPointF(dataCenter.x() * mViewTransform.scale, 
                                                  dataCenter.y() * mViewTransform.scale);
 
-    // 启用抗锯齿
     painter.setRenderHint(QPainter::Antialiasing, true);
     
-    // 按层次绘制
+
     if (mStyle.showTriangulation) {
         drawTriangulation(painter);
     }
@@ -68,8 +59,7 @@ void RouteVisualization::render(QPainter& painter, const QRectF& viewRect) {
     drawOptimalPath(painter);
     drawRiskEventPoints(painter);
     drawStartPoint(painter);
-    
-    // 绘制图例
+
     QRectF legendRect(viewRect.right() - 200, viewRect.top() + 10, 190, 150);
     drawLegend(painter, legendRect);
     
@@ -80,8 +70,7 @@ QRectF RouteVisualization::calculateOptimalViewBounds() const {
     if (!hasData()) {
         return QRectF(0, 0, 1000, 1000);
     }
-    
-    // 添加10%的边距
+
     double margin = 0.1;
     double width = mDataBounds.width();
     double height = mDataBounds.height();
@@ -180,7 +169,7 @@ void RouteVisualization::drawTriangulation(QPainter& painter) {
 void RouteVisualization::drawRiskEventPoints(QPainter& painter) {
     if (mResult.riskEventPoints.isEmpty()) return;
     
-    // 设置风险点样式
+
     painter.setBrush(createBrush(mStyle.riskPointColor));
     setupPainter(painter, mStyle.riskPointBorderColor, mStyle.riskPointBorderWidth);
     
@@ -217,22 +206,24 @@ void RouteVisualization::drawStartPoint(QPainter& painter) {
     if (mResult.optimalPath.isEmpty()) return;
     
     const PathNode& startNode = mResult.optimalPath.first();
-    if (startNode.isRiskEvent) return; // 如果起始点是风险点，则不单独绘制
+    if (startNode.isRiskEvent) return;
+    
     
     painter.setBrush(createBrush(mStyle.startPointColor));
-    setupPainter(painter, QColor(0, 0, 0), 2); // 黑色边框
+    setupPainter(painter, QColor(0, 0, 0), 2); 
+    
     
     QPointF viewPoint = worldToView(startNode.position);
     painter.drawEllipse(viewPoint, mStyle.startPointSize/2, mStyle.startPointSize/2);
 }
 
 void RouteVisualization::drawLegend(QPainter& painter, const QRectF& legendRect) {
-    // 绘制图例背景
+
     painter.fillRect(legendRect, QColor(255, 255, 255, 200));
     painter.setPen(QPen(QColor(0, 0, 0), 1));
     painter.drawRect(legendRect);
     
-    // 图例内容
+
     double itemHeight = 20;
     double startY = legendRect.top() + 10;
     double iconX = legendRect.left() + 10;
@@ -240,32 +231,28 @@ void RouteVisualization::drawLegend(QPainter& painter, const QRectF& legendRect)
     
     painter.setFont(QFont("Arial", 10));
     
-    // 可飞行区域
+
     painter.fillRect(QRectF(iconX, startY, 20, 15), createBrush(mStyle.flightZoneColor, mStyle.flightZoneAlpha));
     painter.drawText(QPointF(textX, startY + 12), "flight zone");
     startY += itemHeight;
     
-    // 路径
     setupPainter(painter, mStyle.pathColor, mStyle.pathWidth);
     painter.drawLine(QPointF(iconX, startY + 7), QPointF(iconX + 20, startY + 7));
     painter.drawText(QPointF(textX, startY + 12), "optimal path");
     startY += itemHeight;
-    
-    // 风险点
+
     painter.setBrush(createBrush(mStyle.riskPointColor));
     painter.setPen(QPen(mStyle.riskPointBorderColor, 1));
     painter.drawEllipse(QRectF(iconX + 5, startY + 2, 10, 10));
     painter.drawText(QPointF(textX, startY + 12), "risk event point");
     startY += itemHeight;
     
-    // 起始点
     painter.setBrush(createBrush(mStyle.startPointColor));
     painter.setPen(QPen(QColor(0, 0, 0), 1));
     painter.drawEllipse(QRectF(iconX + 3, startY, 14, 14));
     painter.drawText(QPointF(textX, startY + 12), "start point");
     startY += itemHeight;
-    
-    // 三角网
+
     if (mStyle.showTriangulation) {
         setupPainter(painter, mStyle.triangulationColor, 1, Qt::SolidLine, mStyle.triangulationAlpha);
         painter.setBrush(Qt::NoBrush);
@@ -283,25 +270,21 @@ void RouteVisualization::calculateDataBounds() {
     }
     
     QVector<QPointF> allPoints;
-    
-    // 添加路径点
+
     for (const PathNode& node : mResult.optimalPath) {
         allPoints.append(QPointF(node.position.x(), node.position.y()));
     }
-    
-    // 添加风险事件点
+
     for (const QVector3D& point : mResult.riskEventPoints) {
         allPoints.append(QPointF(point.x(), point.y()));
     }
-    
-    // 添加可飞行区域点
+
     for (const QPolygonF& zone : mResult.flightZones) {
         for (const QPointF& point : zone) {
             allPoints.append(point);
         }
     }
     
-    // 添加三角网点
     for (const Triangle& triangle : mResult.triangulationTriangles) {
         allPoints.append(QPointF(triangle.p1.x(), triangle.p1.y()));
         allPoints.append(QPointF(triangle.p2.x(), triangle.p2.y()));
@@ -313,7 +296,7 @@ void RouteVisualization::calculateDataBounds() {
         return;
     }
     
-    // 计算边界框
+
     double minX = allPoints.first().x();
     double maxX = minX;
     double minY = allPoints.first().y();
@@ -328,7 +311,7 @@ void RouteVisualization::calculateDataBounds() {
     
     mDataBounds = QRectF(minX, minY, maxX - minX, maxY - minY);
     
-    // 确保边界框有最小尺寸
+
     if (mDataBounds.width() < 1.0) {
         mDataBounds.setWidth(1.0);
     }

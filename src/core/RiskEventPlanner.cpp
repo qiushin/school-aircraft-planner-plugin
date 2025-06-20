@@ -1,9 +1,3 @@
-/****************************************************************************
-File: RiskEventPlanner.cpp
-Author: AI Assistant
-Date: 2025.1.6
-Description: 校园风险点事件无人机巡查路径规划主类实现
-****************************************************************************/
 
 #include "RiskEventPlanner.h"
 #include "../log/QgisDebug.h"
@@ -15,10 +9,7 @@ Description: 校园风险点事件无人机巡查路径规划主类实现
 #include <QtMath>
 #include <cmath>
 
-// QGIS相关头文件用于导出
-// 暂时注释掉以避免ogr_api.h错误
-//#include <qgsvectorlayer.h>
-//#include <qgsvectorfilewriter.h>
+
 #include <qgslinestring.h>
 #include <qgsgeometry.h>
 #include <qgsfeature.h>
@@ -40,11 +31,11 @@ RiskEventPlanner::~RiskEventPlanner() {
 }
 
 PlanningResult RiskEventPlanner::executePlanning(const PlanningParameters& params) {
-    // 清除之前的结果
+
     mResult = PlanningResult();
     mParams = params;
 
-    // 验证参数
+
     auto validation = validateParameters(params);
     if (!validation.first) {
         mResult.success = false;
@@ -55,7 +46,7 @@ PlanningResult RiskEventPlanner::executePlanning(const PlanningParameters& param
     logMessage("start executing risk event path planner", Qgis::MessageLevel::Info);
 
     try {
-        // 步骤1：加载数据文件 (0-25%)
+
         emit progressUpdated(0, "loading data files...");
         if (!loadDataFiles()) {
             mResult.success = false;
@@ -65,7 +56,7 @@ PlanningResult RiskEventPlanner::executePlanning(const PlanningParameters& param
         }
         emit progressUpdated(25, "data files loaded");
 
-        // 步骤2：生成三角网 (25-50%)
+
         emit progressUpdated(25, "generating triangulation...");
         if (!generateTriangulation()) {
             mResult.success = false;
@@ -75,7 +66,7 @@ PlanningResult RiskEventPlanner::executePlanning(const PlanningParameters& param
         }
         emit progressUpdated(50, "triangulation generated");
 
-        // 步骤3：优化路径 (50-80%)
+
         emit progressUpdated(50, "optimizing path...");
         if (!optimizePath()) {
             mResult.success = false;
@@ -85,7 +76,7 @@ PlanningResult RiskEventPlanner::executePlanning(const PlanningParameters& param
         }
         emit progressUpdated(80, "path optimization completed");
 
-        // 步骤4：后处理和验证 (80-100%)
+
         emit progressUpdated(80, "performing post-processing...");
         if (!postProcessing()) {
             mResult.success = false;
@@ -129,14 +120,14 @@ bool RiskEventPlanner::exportPathToShapefile(const QString& outputPath) {
             QTextStream csvOut(&csvFile);
             csvOut.setCodec("UTF-8");
             
-            // CSV文件头
+
             csvOut << "node_id,x,y,z,type,distance_from_start\n";
             
             double totalDistance = 0.0;
             for (int i = 0; i < mResult.optimalPath.size(); ++i) {
                 const PathNode& node = mResult.optimalPath[i];
                 
-                // 计算从起点的累计距离
+
                 if (i > 0) {
                     const PathNode& prevNode = mResult.optimalPath[i - 1];
                     double segmentDistance = sqrt(
@@ -182,7 +173,7 @@ bool RiskEventPlanner::exportPathToShapefile(const QString& outputPath) {
             logMessage(QString("path exported to WKT: %1").arg(wktPath), Qgis::MessageLevel::Success);
         }
         
-        // 3. 创建简单的统计报告
+
         QString statsPath = outputPath;
         statsPath.replace(".shp", "_statistics.txt");
         
@@ -199,7 +190,7 @@ bool RiskEventPlanner::exportPathToShapefile(const QString& outputPath) {
             statsOut << "Flight zones: " << mResult.flightZones.size() << "\n";
             statsOut << "Algorithm: " << mParams.optimizationAlgorithm << "\n\n";
             
-            // 坐标范围
+
             if (!mResult.optimalPath.isEmpty()) {
                 double minX = mResult.optimalPath[0].position.x();
                 double maxX = minX, minY = mResult.optimalPath[0].position.y(), maxY = minY;
@@ -238,8 +229,7 @@ bool RiskEventPlanner::exportTriangulationToShapefile(const QString& outputPath)
         return false;
     }
 
-    // 这里应该实现三角网的导出，类似于路径导出
-    // 由于篇幅限制，这里只提供基本框架
+
     logMessage(QString("triangulation export function to be implemented: %1").arg(outputPath), Qgis::MessageLevel::Info);
     return true;
 }
@@ -274,7 +264,7 @@ void RiskEventPlanner::clear() {
 }
 
 QPair<bool, QString> RiskEventPlanner::validateParameters(const PlanningParameters& params) {
-    // 检查必需的文件路径
+
     if (params.flightZoneShapefile.isEmpty()) {
         return qMakePair(false, QString("flight zone file not specified"));
     }
@@ -287,7 +277,7 @@ QPair<bool, QString> RiskEventPlanner::validateParameters(const PlanningParamete
         return qMakePair(false, QString("output path not specified"));
     }
 
-    // 检查文件是否存在
+
     if (!QFileInfo::exists(params.flightZoneShapefile)) {
         return qMakePair(false, QString("flight zone file not found: %1").arg(params.flightZoneShapefile));
     }
@@ -296,7 +286,7 @@ QPair<bool, QString> RiskEventPlanner::validateParameters(const PlanningParamete
         return qMakePair(false, QString("风险事件点文件不存在: %1").arg(params.riskEventShapefile));
     }
 
-    // 检查参数范围
+
     if (params.triangulationSpacing <= 0) {
         return qMakePair(false, QString("三角网点间距必须大于0"));
     }
@@ -305,23 +295,22 @@ QPair<bool, QString> RiskEventPlanner::validateParameters(const PlanningParamete
 }
 
 void RiskEventPlanner::asyncExecutePlanning(const PlanningParameters& params) {
-    // 在后台线程中执行规划
-    // 这里是同步版本，实际应用中可以使用QThread
+
     executePlanning(params);
 }
 
 bool RiskEventPlanner::loadDataFiles() {
-    // 加载可飞行区域
+
     if (!mShapefileHandler->loadFlightZonePolygon(mParams.flightZoneShapefile)) {
         return false;
     }
 
-    // 加载风险事件点
+
     if (!mShapefileHandler->loadRiskEventPoints(mParams.riskEventShapefile)) {
         return false;
     }
 
-    // 更新结果
+
     mResult.flightZones = mShapefileHandler->getFlightZonePolygons();
     mResult.riskEventPoints = mShapefileHandler->getRiskEventPoints();
     mResult.riskEventCount = mResult.riskEventPoints.size();
@@ -330,26 +319,26 @@ bool RiskEventPlanner::loadDataFiles() {
 }
 
 bool RiskEventPlanner::generateTriangulation() {
-    // 获取可飞行区域边界
+
     QRectF bounds = mShapefileHandler->getFlightZoneBounds();
     
-    // 生成均匀分布点
+
     QVector<QVector3D> uniformPoints = mTriangulationHandler->generateUniformPoints(
         bounds, 
         mParams.triangulationSpacing, 
         mResult.flightZones
     );
 
-    // 添加风险事件点到三角剖分点集
+
     QVector<QVector3D> allPoints = uniformPoints;
     allPoints.append(mResult.riskEventPoints);
 
-    // 执行三角剖分
+
     if (!mTriangulationHandler->performDelaunayTriangulation(allPoints)) {
         return false;
     }
 
-    // 裁剪三角网
+
     mResult.triangulationTriangles = mTriangulationHandler->clipTriangulationWithFlightZone(mResult.flightZones);
     mResult.triangleCount = mResult.triangulationTriangles.size();
 
@@ -357,12 +346,12 @@ bool RiskEventPlanner::generateTriangulation() {
 }
 
 bool RiskEventPlanner::optimizePath() {
-    // 设置路径优化器参数
+
     mPathOptimizer->setRiskEventPoints(mResult.riskEventPoints);
     mPathOptimizer->setTriangulationData(mResult.triangulationTriangles);
     mPathOptimizer->setFlightZoneConstraints(mResult.flightZones);
 
-    // 生成最优路径
+
     mResult.optimalPath = mPathOptimizer->generateOptimalPath(
         mParams.startPoint, 
         mParams.optimizationAlgorithm
@@ -372,22 +361,22 @@ bool RiskEventPlanner::optimizePath() {
         return false;
     }
 
-    // 计算路径长度
+
     mResult.totalPathLength = mPathOptimizer->calculatePathLength(mResult.optimalPath);
 
     return true;
 }
 
 bool RiskEventPlanner::postProcessing() {
-    // 创建输出目录
+
     if (!createOutputDirectory(mParams.outputPath)) {
         return false;
     }
 
-    // 生成报告
+                
     QString report = generateDetailedReport();
     
-    // 保存报告到文件
+
     QString reportPath = QDir(mParams.outputPath).filePath("planning_report.txt");
     QFile reportFile(reportPath);
     if (reportFile.open(QIODevice::WriteOnly | QIODevice::Text)) {

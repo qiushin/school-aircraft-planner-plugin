@@ -284,16 +284,16 @@ void MainWindow::showUserManual() {
 void MainWindow::showRiskEventPlannerDialog() {
   logMessage("show risk event path planner dialog", Qgis::MessageLevel::Info);
   
-  // 延迟创建对话框
+
   if (!mpRiskEventPlannerDialog) {
     mpRiskEventPlannerDialog = new RiskEventPlannerDialog(this);
     
-    // 连接对话框的信号
+
     connect(mpRiskEventPlannerDialog, &RiskEventPlannerDialog::showResults,
             this, &MainWindow::onRiskEventPlanningResults);
   }
   
-  // 显示对话框
+
   mpRiskEventPlannerDialog->show();
   mpRiskEventPlannerDialog->raise();
   mpRiskEventPlannerDialog->activateWindow();
@@ -308,12 +308,11 @@ void MainWindow::onRiskEventPlanningResults(const PlanningResult& result) {
     return;
   }
   
-  // 更新路径可视化
+
   if (mpRouteVisualization) {
     mpRouteVisualization->setPlanningResult(result);
     
-    // 这里可以将结果传递给Canvas进行显示
-    // 由于Canvas可能需要修改来支持2D路径显示，这里只是记录日志
+
     logMessage(QString("path planning results updated - total length: %1 meters, risk points count: %2")
                .arg(result.totalPathLength, 0, 'f', 2)
                .arg(result.riskEventCount), 
@@ -324,18 +323,18 @@ void MainWindow::onRiskEventPlanningResults(const PlanningResult& result) {
 void MainWindow::showGridPathPlannerDialog() {
   logMessage("show grid path planner dialog", Qgis::MessageLevel::Info);
   
-  // 延迟创建对话框
+
   if (!mpGridPathPlannerDialog) {
     mpGridPathPlannerDialog = new GridPathPlannerDialog(this);
     
-    // 连接对话框的信号
+
     connect(mpGridPathPlannerDialog, &GridPathPlannerDialog::showResults,
             this, &MainWindow::onGridPathPlanningResults);
     connect(mpGridPathPlannerDialog, &GridPathPlannerDialog::showAreaResults,
             this, &MainWindow::onAreaPlanningResults);
   }
   
-  // 显示对话框
+
   mpGridPathPlannerDialog->show();
   mpGridPathPlannerDialog->raise();
   mpGridPathPlannerDialog->activateWindow();
@@ -350,15 +349,14 @@ void MainWindow::onGridPathPlanningResults(const GridPlanningResult& result) {
     return;
   }
   
-  // 处理网格路径规划结果
+
   logMessage(QString("grid path planning results updated - total length: %1 meters, visited risk points: %2/%3")
              .arg(result.totalPathLength, 0, 'f', 2)
              .arg(result.visitedRiskPoints)
              .arg(result.totalRiskPoints), 
              Qgis::MessageLevel::Success);
              
-  // 这里可以将结果传递给Canvas进行3D显示
-  // 由于Canvas可能需要修改来支持网格路径显示，暂时只记录日志
+
 }
 
 void MainWindow::onAreaPlanningResults(const AreaPlanningResult& result) {
@@ -370,7 +368,7 @@ void MainWindow::onAreaPlanningResults(const AreaPlanningResult& result) {
     return;
   }
   
-  // 处理面事件路径规划结果
+
   logMessage(QString("area path planning results updated - total length: %1 meters, coverage: %2% (%3/%4 nodes)")
              .arg(result.totalPathLength, 0, 'f', 2)
              .arg(result.coverageRate * 100.0, 0, 'f', 1)
@@ -378,11 +376,11 @@ void MainWindow::onAreaPlanningResults(const AreaPlanningResult& result) {
              .arg(result.totalGridCells), 
              Qgis::MessageLevel::Success);
              
-  // 输出网格节点信息以进行调试
+
   logMessage(QString("area planning grid nodes: %1 total nodes").arg(result.gridNodes.size()), 
              Qgis::MessageLevel::Info);
              
-  // 显示一些网格节点的坐标信息
+
   for (int i = 0; i < qMin(5, result.gridNodes.size()); ++i) {
     const GridNode& node = result.gridNodes[i];
     logMessage(QString("node %1: position(%2, %3, %4), neighbors: %5")
